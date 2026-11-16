@@ -20,7 +20,10 @@ function App() {
       }}
     >
       <SkinPicker />
-      <View class="bg-faceplate w-full flex-1 gap-4 rounded-3xl p-4" style={{ maxWidth: 420, maxHeight: 900 }}>
+      <View
+        class="bg-faceplate border-faceplate-foreground/15 w-full flex-1 gap-4 rounded-3xl border p-4 shadow-2xl"
+        style={{ maxWidth: 420, maxHeight: 900 }}
+      >
         <Lcd screen={currentScreen} />
         <Keypad layout={currentSkin().keypad} onPress={press} />
       </View>

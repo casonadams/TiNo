@@ -4,8 +4,8 @@
       "radius": "0.375rem"
     },
     "light": {
-      "background": "#e9e4d8",
-      "foreground": "#1d2316",
+      "background": "#12151b",
+      "foreground": "#e6e9ee",
       "faceplate": "#3c4a5c",
       "faceplate-foreground": "#e6e9ee",
       "bezel": "#27303b",

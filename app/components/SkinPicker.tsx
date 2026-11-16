@@ -13,12 +13,14 @@ export function SkinPicker() {
           accessibilityState={{ selected: currentSkin().id === skin.id }}
           testID={`skin-${skin.id}`}
           onPress={() => chooseSkin(skin.id)}
-          class={`rounded-full px-3 py-1 active:opacity-70 ${
-            currentSkin().id === skin.id ? "bg-faceplate" : "bg-background border border-faceplate"
+          class={`rounded-full border px-3 py-1 active:opacity-70 ${
+            currentSkin().id === skin.id
+              ? "bg-faceplate-foreground border-faceplate-foreground"
+              : "bg-background border-faceplate-foreground/40"
           }`}
         >
           <Text
-            class={currentSkin().id === skin.id ? "text-faceplate-foreground" : "text-foreground"}
+            class={currentSkin().id === skin.id ? "text-faceplate" : "text-foreground"}
             style={{ fontSize: 13 }}
           >
             {skin.name}
