@@ -13,6 +13,7 @@
       "lcd-foreground": "#121417",
       "lcd-accent": "#2f6fd6",
       "lcd-muted": "#6b7178",
+      "lcd-error": "#c42b2b",
       "lcd-cursor": "#121417",
       "key": "#353a42",
       "key-foreground": "#f2f3f5",

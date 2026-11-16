@@ -5,7 +5,7 @@ import type { ErrorScreen } from "tino/native";
 export function ErrorView(props: { error: () => ErrorScreen }) {
   return (
     <View class="flex-1 gap-2" testID="error">
-      <Text class="text-destructive font-semibold" style={{ fontSize: 20 }}>
+      <Text class="text-lcd-error font-semibold" style={{ fontSize: 20 }}>
         {props.error().message}
       </Text>
       <Each of={props.error().choices}>

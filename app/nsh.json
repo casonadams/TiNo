@@ -5,5 +5,5 @@
   "build": 1,
   "rust": "native",
   "theme": "skins/color/theme.json",
-  "appearance": "light"
+  "appearance": "dark"
 }
