@@ -14,6 +14,21 @@ test("keypad presses type tokens on the entry line", async () => {
   expect(app.texts()).not.toContain("2ND");
 });
 
+test("enter shows the result and clears the entry line", async () => {
+  const app = await open("./App.tsx");
+  for (const key of ["1", "2", "multiply", "1", "2", "enter"]) await app.press(`id:key-${key}`);
+  expect(app.texts()).toContain("144");
+  expect(app.shows("label:12×12")).toBe(false);
+});
+
+test("an error is shown until the next key press", async () => {
+  const app = await open("./App.tsx");
+  for (const key of ["1", "divide", "0", "enter"]) await app.press(`id:key-${key}`);
+  expect(app.texts()).toContain("ERR:DIVIDE BY 0");
+  await app.press("id:key-del");
+  expect(app.texts()).not.toContain("ERR:DIVIDE BY 0");
+});
+
 test("the computer keyboard presses calculator keys", async () => {
   const app = await open("./App.tsx");
   await app.keyboard.press("4");

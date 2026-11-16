@@ -36,23 +36,50 @@ impl From<calc_core::CursorStyle> for CursorStyle {
     }
 }
 
+/// An evaluated entry on the home screen.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct HistoryLine {
+    /// Unique for the calculator's lifetime: the line's key in lists.
+    pub id: u32,
+    /// The entry as TeX.
+    pub latex: String,
+    /// The result as the calculator formats it.
+    pub result: String,
+}
+
+impl From<&calc_core::HistoryLine> for HistoryLine {
+    fn from(line: &calc_core::HistoryLine) -> Self {
+        HistoryLine {
+            id: line.id,
+            latex: line.output.latex.clone(),
+            result: line.output.result.clone(),
+        }
+    }
+}
+
 /// What the calculator's screen shows.
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct Screen {
+    /// Evaluated entries, oldest first.
+    pub history: Vec<HistoryLine>,
     /// The entry line, one string per token.
     pub entry: Vec<String>,
     /// The index of the token under the cursor; `entry.length` after the last one.
     pub cursor: u32,
     /// What the cursor shows.
     pub cursor_style: CursorStyle,
+    /// The error the last ENTER raised (`"ERR:SYNTAX"`), until the next key press.
+    pub error: Option<String>,
 }
 
 impl From<calc_core::Screen<'_>> for Screen {
     fn from(screen: calc_core::Screen<'_>) -> Self {
         Screen {
+            history: screen.history.iter().map(HistoryLine::from).collect(),
             entry: screen.entry.iter().map(|t| t.text().to_owned()).collect(),
             cursor: u32::try_from(screen.cursor).unwrap_or(u32::MAX),
             cursor_style: screen.cursor_style.into(),
+            error: screen.error.map(|e| e.message().to_owned()),
         }
     }
 }

@@ -166,6 +166,21 @@ impl Token {
             Token::Question => "?",
         }
     }
+
+    /// Whether the token operates on a value before it (`+`, `²`, `→`).
+    pub fn takes_left_operand(self) -> bool {
+        matches!(
+            self,
+            Token::Add
+                | Token::Subtract
+                | Token::Multiply
+                | Token::Divide
+                | Token::Power
+                | Token::Square
+                | Token::Inverse
+                | Token::Store
+        )
+    }
 }
 
 #[cfg(test)]

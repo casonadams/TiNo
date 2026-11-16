@@ -1,57 +1,18 @@
+use std::collections::VecDeque;
+
 use crate::{
     editor::Editor,
+    error::CalcError,
+    eval::{Memory, evaluate},
+    format::format_real,
+    home::{History, HistoryLine, Output},
     key::Key,
-    keymap::{self, Action, Layer},
+    keymap::{self, Action, Command, Edit, Layer},
+    latex,
+    modifiers::{AlphaState, Modifiers},
+    parse::parse,
     token::Token,
 };
-
-/// ALPHA's state: off, for the next key, or locked (2nd ALPHA) until ALPHA
-/// is pressed again.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-enum AlphaState {
-    #[default]
-    Off,
-    Once,
-    Locked,
-}
-
-/// The modifier keys' state, which decides the layer of the next press.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-struct Modifiers {
-    second: bool,
-    alpha: AlphaState,
-}
-
-impl Modifiers {
-    fn layer(self) -> Layer {
-        match (self.second, self.alpha) {
-            (true, _) => Layer::Second,
-            (false, AlphaState::Off) => Layer::Normal,
-            (false, _) => Layer::Alpha,
-        }
-    }
-
-    fn press_second(&mut self) {
-        self.second = !self.second;
-    }
-
-    fn press_alpha(&mut self) {
-        self.alpha = match (self.second, self.alpha) {
-            (true, _) => AlphaState::Locked,
-            (false, AlphaState::Off) => AlphaState::Once,
-            (false, _) => AlphaState::Off,
-        };
-        self.second = false;
-    }
-
-    /// After any other key: 2nd and a single ALPHA are used up, a lock stays.
-    fn release(&mut self) {
-        self.second = false;
-        if self.alpha == AlphaState::Once {
-            self.alpha = AlphaState::Off;
-        }
-    }
-}
 
 /// What the cursor shows: the mode the next key press is in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,11 +25,14 @@ pub enum CursorStyle {
 }
 
 /// What the screen shows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Screen<'a> {
+    pub history: &'a VecDeque<HistoryLine>,
     pub entry: &'a [Token],
     pub cursor: usize,
     pub cursor_style: CursorStyle,
+    /// The error the last ENTER raised, until the next key press.
+    pub error: Option<CalcError>,
 }
 
 /// The calculator: key presses in, a screen out.
@@ -76,18 +40,25 @@ pub struct Screen<'a> {
 pub struct Calculator {
     modifiers: Modifiers,
     editor: Editor,
+    memory: Memory,
+    history: History,
+    error: Option<CalcError>,
+    /// How far back the last 2nd ENTRY reached, while ENTRY keeps being pressed.
+    recall: Option<usize>,
 }
 
 impl Calculator {
     pub fn press(&mut self, key: Key) {
+        self.error = None;
         match key {
             Key::Second => self.modifiers.press_second(),
             Key::Alpha => self.modifiers.press_alpha(),
             _ => {
                 let action = keymap::action(key, self.modifiers.layer());
                 self.modifiers.release();
+                let recalled = self.recall.take();
                 if let Some(action) = action {
-                    self.perform(action);
+                    self.perform(action, recalled);
                 }
             }
         }
@@ -95,93 +66,85 @@ impl Calculator {
 
     pub fn screen(&self) -> Screen<'_> {
         Screen {
+            history: self.history.lines(),
             entry: self.editor.tokens(),
             cursor: self.editor.cursor(),
             cursor_style: self.cursor_style(),
+            error: self.error,
         }
     }
 
-    fn perform(&mut self, action: Action) {
+    fn perform(&mut self, action: Action, recalled: Option<usize>) {
         match action {
-            Action::Insert(token) => self.editor.type_token(token),
+            Action::Insert(token) => self.insert(token),
+            Action::Edit(Edit::Clear) if self.editor.tokens().is_empty() => self.history.clear(),
             Action::Edit(edit) => self.editor.apply(edit),
+            Action::Command(Command::Enter) => self.enter(),
+            Action::Command(Command::Entry) => self.recall_entry(recalled),
             Action::Command(_) => {}
         }
     }
 
+    /// Types `token`; an operator typed first on the line applies to `Ans`.
+    fn insert(&mut self, token: Token) {
+        if self.editor.tokens().is_empty() && token.takes_left_operand() {
+            self.editor.type_token(Token::Ans);
+        }
+        self.editor.type_token(token);
+    }
+
+    /// Evaluates the entry line, or the newest entry again when the line is
+    /// empty. An error leaves the entry on the line with the cursor at it.
+    fn enter(&mut self) {
+        let entry = match (self.editor.tokens(), self.history.recall(0)) {
+            ([], Some(previous)) => previous.to_vec(),
+            ([], None) => return,
+            (tokens, _) => tokens.to_vec(),
+        };
+        match self.run(&entry) {
+            Ok(output) => {
+                self.history.push(entry, output);
+                self.editor.apply(Edit::Clear);
+            }
+            Err(error) => {
+                self.editor.replace(entry);
+                if let Some(position) = error.position {
+                    self.editor.place_cursor(position);
+                }
+                self.error = Some(error);
+            }
+        }
+    }
+
+    fn run(&mut self, entry: &[Token]) -> Result<Output, CalcError> {
+        let statement = parse(entry)?;
+        let value = evaluate(&statement.expr, &self.memory)?;
+        if let Some(letter) = statement.store {
+            self.memory.set(letter, value);
+        }
+        self.memory.set_ans(value);
+        Ok(Output {
+            latex: latex::statement(&statement),
+            result: format_real(value),
+        })
+    }
+
+    /// 2nd ENTRY: the newest entry, then each older one on every further press.
+    fn recall_entry(&mut self, recalled: Option<usize>) {
+        let back = recalled.map_or(0, |back| back + 1);
+        if let Some(entry) = self.history.recall(back) {
+            self.editor.replace(entry.to_vec());
+            self.recall = Some(back);
+        }
+    }
+
     fn cursor_style(&self) -> CursorStyle {
-        match (self.modifiers.layer(), self.modifiers.alpha) {
+        match (self.modifiers.layer(), self.modifiers.alpha()) {
             (Layer::Second, _) => CursorStyle::Second,
             (Layer::Alpha, AlphaState::Locked) => CursorStyle::AlphaLock,
             (Layer::Alpha, _) => CursorStyle::Alpha,
             (Layer::Normal, _) if self.editor.is_inserting() => CursorStyle::Insert,
             (Layer::Normal, _) => CursorStyle::Overwrite,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::token::Letter;
-
-    fn pressed(keys: &[Key]) -> Calculator {
-        let mut calculator = Calculator::default();
-        keys.iter().for_each(|&key| calculator.press(key));
-        calculator
-    }
-
-    fn entry_text(calculator: &Calculator) -> String {
-        calculator.screen().entry.iter().map(|t| t.text()).collect()
-    }
-
-    #[test]
-    fn second_applies_to_one_key() {
-        let calculator = pressed(&[Key::Second, Key::Sin, Key::Sin]);
-        assert_eq!(entry_text(&calculator), "sin⁻¹(sin(");
-        assert_eq!(calculator.screen().cursor_style, CursorStyle::Overwrite);
-    }
-
-    #[test]
-    fn pressing_second_twice_cancels_it() {
-        let calculator = pressed(&[Key::Second, Key::Second, Key::Power]);
-        assert_eq!(entry_text(&calculator), "^");
-    }
-
-    #[test]
-    fn alpha_applies_to_one_key() {
-        let calculator = pressed(&[Key::Alpha, Key::Math, Key::Math]);
-        assert_eq!(calculator.screen().entry[0], Token::Letter(Letter::A));
-        assert_eq!(calculator.screen().cursor_style, CursorStyle::Overwrite);
-    }
-
-    #[test]
-    fn second_alpha_locks_alpha_until_alpha() {
-        let mut calculator = pressed(&[Key::Second, Key::Alpha, Key::Math, Key::Apps]);
-        assert_eq!(entry_text(&calculator), "AB");
-        assert_eq!(calculator.screen().cursor_style, CursorStyle::AlphaLock);
-        calculator.press(Key::Alpha);
-        calculator.press(Key::Digit1);
-        assert_eq!(entry_text(&calculator), "AB1");
-    }
-
-    #[test]
-    fn the_cursor_shows_the_pending_modifier() {
-        let cases = [
-            (vec![], CursorStyle::Overwrite),
-            (vec![Key::Second], CursorStyle::Second),
-            (vec![Key::Alpha], CursorStyle::Alpha),
-            (vec![Key::Second, Key::Del], CursorStyle::Insert),
-        ];
-        for (keys, style) in cases {
-            assert_eq!(pressed(&keys).screen().cursor_style, style, "{keys:?}");
-        }
-    }
-
-    #[test]
-    fn editing_keys_work_while_alpha_is_locked() {
-        let calculator = pressed(&[Key::Second, Key::Alpha, Key::Math, Key::Left, Key::Apps]);
-        assert_eq!(entry_text(&calculator), "B");
-        assert_eq!(calculator.screen().cursor_style, CursorStyle::AlphaLock);
     }
 }

@@ -44,6 +44,18 @@ impl Editor {
         }
     }
 
+    /// Replaces the line with `tokens`, the cursor after the last one.
+    pub fn replace(&mut self, tokens: Vec<Token>) {
+        self.cursor = tokens.len();
+        self.tokens = tokens;
+        self.inserting = false;
+    }
+
+    /// Puts the cursor on token `cursor`, at most just after the last one.
+    pub fn place_cursor(&mut self, cursor: usize) {
+        self.move_to(cursor.min(self.tokens.len()));
+    }
+
     /// Removes the token under the cursor, or the last token when the cursor
     /// is after it.
     fn delete(&mut self) {
