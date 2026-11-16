@@ -179,6 +179,40 @@ fn refine(g: &impl Fn(f64) -> Value, mut low: f64, mut high: f64) -> Value {
     Ok((low + high) / 2.0)
 }
 
+/// Halvings `root` takes at most; more cannot narrow an `f64` interval.
+const ROOT_STEPS: usize = 200;
+
+/// Where `f` crosses zero in `[a, b]`, by bisection; `ERR:NO SIGN CHNG`
+/// when `f` has the same sign at both ends.
+pub fn root(f: impl Fn(f64) -> Value, (a, b): (f64, f64)) -> Value {
+    let (low, high) = (a.min(b), a.max(b));
+    let (low_value, high_value) = (f(low)?, f(high)?);
+    if low_value == 0.0 || high_value == 0.0 {
+        return Ok(if low_value == 0.0 { low } else { high });
+    }
+    if low_value.signum() == high_value.signum() {
+        return fail(ErrorKind::NoSignChange);
+    }
+    bisect(f, (low, high), low_value.signum())
+}
+
+/// Halves `[low, high]`, keeping the half whose ends `f` gives opposite
+/// signs, until it cannot narrow; `f` has sign `low_sign` at `low`.
+fn bisect(f: impl Fn(f64) -> Value, (mut low, mut high): (f64, f64), low_sign: f64) -> Value {
+    for _ in 0..ROOT_STEPS {
+        let middle = (low + high) / 2.0;
+        if middle <= low || middle >= high {
+            break;
+        }
+        match f(middle)? {
+            0.0 => return Ok(middle),
+            value if value.signum() == low_sign => low = middle,
+            _ => high = middle,
+        }
+    }
+    Ok((low + high) / 2.0)
+}
+
 /// `f(start) + f(start + 1) + … + f(end)` over whole `start` and `end`;
 /// 0 when `end` is before `start`.
 pub fn sum(f: impl Fn(f64) -> Value, start: f64, end: f64) -> Value {
