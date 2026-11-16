@@ -1,17 +1,20 @@
 //! The calculator: key presses in, a screen out. Each screen's keys are
 //! handled in its own module; the screen keys (Y=, WINDOW, ZOOM, TRACE,
-//! GRAPH, MODE, 2nd QUIT) switch screens from anywhere but the error screen.
+//! GRAPH, TBLSET, TABLE, MODE, 2nd QUIT) switch screens from anywhere but
+//! the error screen.
 
 mod graph;
 mod home;
 mod render;
 mod screens;
+mod table;
 
 use crate::{
     editor::Editor,
     error::CalcError,
     error_screen::{ErrorMenu, ErrorOrigin},
     eval::Memory,
+    field_editor::FieldCursor,
     functions::Functions,
     home::{EntryStack, History},
     key::Key,
@@ -20,9 +23,10 @@ use crate::{
     mode_screen::ModeCursor,
     modifiers::Modifiers,
     settings::Settings,
+    table::{TableCursor, TableField, TableSettings},
     trace::TraceCursor,
     window::Window,
-    window_editor::{WindowCursor, WindowField},
+    window_editor::WindowField,
     y_editor::YCursor,
     zoom::ZoomItem,
 };
@@ -36,10 +40,12 @@ enum View {
     Mode(ModeCursor),
     Error(ErrorMenu),
     Functions(YCursor),
-    Window(WindowCursor),
+    Window(FieldCursor<WindowField>),
     /// The graph, with the trace cursor while tracing.
     Graph(Option<TraceCursor>),
     Zoom(ListMenu),
+    TableSetup(FieldCursor<TableField>),
+    Table(TableCursor),
 }
 
 const HOME: View = View::Home(None);
@@ -60,6 +66,8 @@ enum Destination {
     Zoom,
     Graph,
     Trace,
+    TableSetup,
+    Table,
 }
 
 impl Destination {
@@ -72,6 +80,8 @@ impl Destination {
             Command::Zoom => Destination::Zoom,
             Command::Graph => Destination::Graph,
             Command::Trace => Destination::Trace,
+            Command::TableSetup => Destination::TableSetup,
+            Command::Table => Destination::Table,
             _ => return None,
         })
     }
@@ -89,6 +99,7 @@ pub struct Calculator {
     entries: EntryStack,
     functions: Functions,
     window: Window,
+    table: TableSettings,
 }
 
 impl Calculator {
@@ -126,16 +137,19 @@ impl Calculator {
             View::Error(menu) => self.perform_error(menu, action),
             View::Functions(cursor) => View::Functions(cursor.perform(action, &mut self.functions)),
             View::Window(cursor) => self.perform_window(cursor, action),
+            View::TableSetup(cursor) => self.perform_table_setup(cursor, action),
+            View::Table(cursor) => self.perform_table(cursor, action),
             View::Graph(trace) => self.perform_graph(trace, action),
             View::Zoom(menu) => self.perform_zoom(menu, action),
         }
     }
 
     /// Leaving `view` for another screen; the error screen instead when the
-    /// WINDOW field being typed does not evaluate.
+    /// WINDOW or TBLSET field being typed does not evaluate.
     fn leave(&mut self, view: View) -> Option<View> {
         match view {
             View::Window(cursor) => self.commit_window(&cursor).err(),
+            View::TableSetup(cursor) => self.commit_table_setup(&cursor).err(),
             _ => None,
         }
     }
@@ -147,14 +161,12 @@ impl Calculator {
             Destination::Functions => {
                 View::Functions(YCursor::at(0, usize::MAX, &mut self.functions))
             }
-            Destination::Window => View::Window(WindowCursor::new(
-                WindowField::XMin,
-                &self.window,
-                self.settings,
-            )),
+            Destination::Window => View::Window(self.window_cursor(WindowField::XMin)),
             Destination::Zoom => View::Zoom(ListMenu::new(ZoomItem::ALL.len())),
             Destination::Graph => self.graph(false),
             Destination::Trace => self.graph(true),
+            Destination::TableSetup => View::TableSetup(self.table_setup_cursor(TableField::Start)),
+            Destination::Table => self.table(),
         }
     }
 }

@@ -3,8 +3,8 @@
 use nsh_core::prelude::*;
 
 use crate::graphing::{
-    FunctionsScreen, GraphScreen, MenuScreen, WindowScreen, functions_screen, graph_screen,
-    menu_screen, window_screen,
+    FieldsScreen, FunctionsScreen, GraphScreen, MenuScreen, TableScreen, fields_screen,
+    functions_screen, graph_screen, menu_screen, table_screen,
 };
 
 /// What the cursor shows: the mode the next key press is in.
@@ -45,8 +45,10 @@ pub enum ScreenKind {
     Error,
     /// The Y= functions (`functions` is set).
     Functions,
-    /// The WINDOW settings (`window` is set).
-    Window,
+    /// A settings screen, WINDOW or TBLSET (`fields` is set).
+    Fields,
+    /// The table (`table` is set).
+    Table,
     /// The graph (`graph` is set).
     Graph,
     /// A numbered menu (`menu` is set).
@@ -117,7 +119,8 @@ pub struct Screen {
     pub mode: Option<ModeScreen>,
     pub error: Option<ErrorScreen>,
     pub functions: Option<FunctionsScreen>,
-    pub window: Option<WindowScreen>,
+    pub fields: Option<FieldsScreen>,
+    pub table: Option<TableScreen>,
     pub graph: Option<GraphScreen>,
     pub menu: Option<MenuScreen>,
 }
@@ -137,7 +140,8 @@ impl From<calc_core::Screen<'_>> for Screen {
             mode: None,
             error: None,
             functions: None,
-            window: None,
+            fields: None,
+            table: None,
             graph: None,
             menu: None,
         };
@@ -161,9 +165,14 @@ impl From<calc_core::Screen<'_>> for Screen {
                 functions: Some(functions_screen(&functions)),
                 ..base
             },
-            ScreenView::Window(window) => Screen {
-                kind: ScreenKind::Window,
-                window: Some(window_screen(&window)),
+            ScreenView::Fields(fields) => Screen {
+                kind: ScreenKind::Fields,
+                fields: Some(fields_screen(&fields)),
+                ..base
+            },
+            ScreenView::Table(table) => Screen {
+                kind: ScreenKind::Table,
+                table: Some(table_screen(&table)),
                 ..base
             },
             ScreenView::Graph(graph) => Screen {

@@ -1,6 +1,6 @@
-use calc_core::{Calculator, GraphView, Key, RowFocus, ScreenView, WindowField};
+use calc_core::{Calculator, GraphView, Key, RowFocus, ScreenView};
 
-use crate::support::{press, pressed};
+use crate::support::{field_value, press, pressed};
 
 const XT: Key = Key::XtThetaN;
 
@@ -63,20 +63,8 @@ fn window_entries_are_evaluated_when_the_cursor_leaves_them() {
         &mut calculator,
         &[Key::Clear, Key::Digit2, Key::Second, Key::Power, Key::Enter],
     );
-    let ScreenView::Window(window) = calculator.screen().view else {
-        panic!("expected WINDOW");
-    };
-    let value = |field: WindowField| {
-        window
-            .rows
-            .iter()
-            .find(|r| r.field == field)
-            .unwrap()
-            .value
-            .clone()
-    };
-    assert_eq!(value(WindowField::XMin), "⁻2");
-    assert_eq!(value(WindowField::XMax), "6.283185307");
+    assert_eq!(field_value(&calculator, "Xmin"), "⁻2");
+    assert_eq!(field_value(&calculator, "Xmax"), "6.283185307");
 }
 
 #[test]

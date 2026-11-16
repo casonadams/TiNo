@@ -59,6 +59,17 @@ test("dragging the graph moves the window; tapping it traces", async () => {
   expect(texts[texts.indexOf("Xmax=") + 1]).not.toBe("10");
 });
 
+test("TABLE lists each graphed function by X; arrows select cells and dragging scrolls", async () => {
+  const app = await open("./App.tsx");
+  for (const key of ["y-equals", "xt-theta-n", "square", "second", "graph"]) await app.press(`id:key-${key}`);
+  for (const text of ["X", "Y1", "X=0"]) expect(app.texts()).toContain(text);
+  await app.press("id:key-down");
+  await app.press("id:key-right");
+  expect(app.texts()).toContain("Y1=1");
+  await app.drag("id:table", { x: 0, y: -60 });
+  expect(app.texts()).toContain("Y1=16");
+});
+
 test("the computer keyboard presses calculator keys", async () => {
   const app = await open("./App.tsx");
   await app.keyboard.press("4");

@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{
     error_screen::ErrorChoice, home::HistoryLine, mode_screen::ModeRow, plot::Plot, token::Token,
-    window::Window, window_editor::WindowField,
+    window::Window,
 };
 
 /// What the cursor shows: the mode the next key press is in.
@@ -40,7 +40,8 @@ pub enum ScreenView<'a> {
     Mode(ModeView),
     Error(ErrorView),
     Functions(FunctionsView<'a>),
-    Window(WindowView<'a>),
+    Fields(FieldsView<'a>),
+    Table(TableView),
     Graph(Box<GraphView>),
     Menu(MenuView),
 }
@@ -102,19 +103,32 @@ pub enum RowFocus {
     Entry(usize),
 }
 
-/// The WINDOW screen: one row per field.
+/// A settings screen of typed values (WINDOW, TBLSET): one row per field.
 #[derive(Debug, Clone, PartialEq)]
-pub struct WindowView<'a> {
-    pub rows: Vec<WindowRowView<'a>>,
+pub struct FieldsView<'a> {
+    pub title: &'static str,
+    pub rows: Vec<FieldRowView<'a>>,
 }
 
-/// A WINDOW row: its field and value, or the entry being typed into the
+/// A settings row: its label and value, or the entry being typed into the
 /// focused one with the cursor's position.
 #[derive(Debug, Clone, PartialEq)]
-pub struct WindowRowView<'a> {
-    pub field: WindowField,
+pub struct FieldRowView<'a> {
+    pub label: &'static str,
     pub value: String,
     pub editing: Option<(&'a [Token], usize)>,
+}
+
+/// The table: column headers, the rows shown, the selected cell (its
+/// column counted among those shown) and the selected value written out.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TableView {
+    pub headers: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+    pub selected_row: usize,
+    pub selected_column: usize,
+    /// `X=2` or `Y1=4.5`.
+    pub footer: String,
 }
 
 /// The graph screen: the window, the sampled functions, tick positions and

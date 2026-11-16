@@ -1,4 +1,4 @@
-use crate::{error::CalcError, token::Token, window_editor::WindowField};
+use crate::{error::CalcError, table::TableField, token::Token, window_editor::WindowField};
 
 /// The error screen's choices: back to the home screen, or back to where
 /// the error was raised with the cursor at the fault.
@@ -30,6 +30,8 @@ pub enum ErrorOrigin {
     WindowField(WindowField, Vec<Token>),
     /// The WINDOW settings as a whole.
     Window,
+    /// A TBLSET field and the entry typed into it.
+    TableField(TableField, Vec<Token>),
 }
 
 /// The error screen: the error, where it was raised, and the highlighted

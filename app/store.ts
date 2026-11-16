@@ -26,3 +26,8 @@ export function zoomGraph(factor: number, anchor: GraphPoint): void {
 export function traceAt(fraction: number): void {
   screen.set(calculator.traceAt(fraction));
 }
+
+/** Scrolls the table by `rows` (down when positive). */
+export function scrollTable(rows: number): void {
+  screen.set(calculator.scrollTable(rows));
+}

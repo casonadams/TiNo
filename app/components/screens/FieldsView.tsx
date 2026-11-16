@@ -1,13 +1,13 @@
 import { Text, View } from "nsh";
-import type { CursorStyle, WindowRow, WindowScreen } from "tino/native";
+import type { CursorStyle, FieldRow, FieldsScreen } from "tino/native";
 import { EntryLine } from "../EntryLine";
 
 const ROW_SIZE = 17;
 
-function Row(props: { row: () => WindowRow; cursorStyle: () => CursorStyle }) {
+function Row(props: { row: () => FieldRow; cursorStyle: () => CursorStyle }) {
   return (
     <View class="flex-row items-center gap-1">
-      <Text class="text-lcd-foreground" style={{ fontSize: ROW_SIZE, width: 52 }}>
+      <Text class="text-lcd-foreground" style={{ fontSize: ROW_SIZE, minWidth: 52 }}>
         {`${props.row().label}=`}
       </Text>
       <If
@@ -24,7 +24,7 @@ function Row(props: { row: () => WindowRow; cursorStyle: () => CursorStyle }) {
             cursor={() => props.row().cursor}
             cursorStyle={props.cursorStyle}
             size={ROW_SIZE}
-            testID={`window-${props.row().label}`}
+            testID={`field-${props.row().label}`}
           />
         )}
       </If>
@@ -32,14 +32,14 @@ function Row(props: { row: () => WindowRow; cursorStyle: () => CursorStyle }) {
   );
 }
 
-/** WINDOW: each setting's value; the focused one shows what is typed into it. */
-export function WindowView(props: { window: () => WindowScreen; cursorStyle: () => CursorStyle }) {
+/** A settings screen (WINDOW, TBLSET): each value; the focused one shows what is typed into it. */
+export function FieldsView(props: { fields: () => FieldsScreen; cursorStyle: () => CursorStyle }) {
   return (
     <View class="flex-1 gap-0.5" style={{ overflow: "hidden" }}>
       <Text class="text-lcd-foreground font-semibold" style={{ fontSize: 15 }}>
-        WINDOW
+        {props.fields().title}
       </Text>
-      <Each of={props.window().rows} key={(row: WindowRow) => row.label}>
+      <Each of={props.fields().rows} key={(row: FieldRow) => row.label}>
         {(row) => <Row row={row} cursorStyle={props.cursorStyle} />}
       </Each>
     </View>

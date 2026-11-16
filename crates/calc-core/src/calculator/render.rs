@@ -1,6 +1,7 @@
 use super::{Calculator, View};
 use crate::{
     error_screen::{ErrorChoice, ErrorMenu},
+    field_editor::{Field, FieldCursor},
     format::format_real,
     functions::{FUNCTION_COUNT, Functions},
     keymap::Layer,
@@ -9,12 +10,11 @@ use crate::{
     modifiers::AlphaState,
     plot::plot,
     screen::{
-        CursorStyle, ErrorView, FunctionRowView, FunctionsView, GraphView, HomeView, MenuItemView,
-        MenuView, ModeRowView, ModeView, RowFocus, Screen, ScreenView, TraceView, WindowRowView,
-        WindowView,
+        CursorStyle, ErrorView, FieldRowView, FieldsView, FunctionRowView, FunctionsView,
+        GraphView, HomeView, MenuItemView, MenuView, ModeRowView, ModeView, RowFocus, Screen,
+        ScreenView, TraceView,
     },
     trace::TraceCursor,
-    window_editor::{WindowCursor, WindowField},
     y_editor::YCursor,
     zoom::ZoomItem,
 };
@@ -33,7 +33,13 @@ impl Calculator {
                 View::Mode(cursor) => ScreenView::Mode(self.mode_view(*cursor)),
                 View::Error(menu) => ScreenView::Error(error_view(menu)),
                 View::Functions(cursor) => ScreenView::Functions(self.functions_view(*cursor)),
-                View::Window(cursor) => ScreenView::Window(self.window_view(cursor)),
+                View::Window(cursor) => {
+                    ScreenView::Fields(self.fields_view(cursor, |field| field.get(&self.window)))
+                }
+                View::TableSetup(cursor) => {
+                    ScreenView::Fields(self.fields_view(cursor, |field| field.get(&self.table)))
+                }
+                View::Table(cursor) => ScreenView::Table(self.table_view(*cursor)),
                 View::Graph(trace) => ScreenView::Graph(Box::new(self.graph_view(*trace))),
                 View::Zoom(menu) => ScreenView::Menu(zoom_menu(*menu)),
             },
@@ -75,15 +81,22 @@ impl Calculator {
         }
     }
 
-    fn window_view<'a>(&'a self, cursor: &'a WindowCursor) -> WindowView<'a> {
-        let rows = WindowField::ALL.map(|field| WindowRowView {
-            field,
-            value: format_real(field.get(&self.window), self.settings),
+    /// A settings screen: each field's value from `value`, the focused
+    /// one's entry instead.
+    fn fields_view<'a, F: Field>(
+        &self,
+        cursor: &'a FieldCursor<F>,
+        value: impl Fn(F) -> f64,
+    ) -> FieldsView<'a> {
+        let rows = F::ALL.iter().map(|&field| FieldRowView {
+            label: field.label(),
+            value: format_real(value(field), self.settings),
             editing: (field == cursor.field)
                 .then(|| (cursor.editor.tokens(), cursor.editor.cursor())),
         });
-        WindowView {
-            rows: rows.to_vec(),
+        FieldsView {
+            title: F::TITLE,
+            rows: rows.collect(),
         }
     }
 

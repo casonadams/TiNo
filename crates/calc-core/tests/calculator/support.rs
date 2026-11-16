@@ -1,4 +1,4 @@
-use calc_core::{Calculator, HomeView, Key};
+use calc_core::{Calculator, HomeView, Key, ScreenView};
 
 pub fn pressed(keys: &[Key]) -> Calculator {
     let mut calculator = Calculator::default();
@@ -27,4 +27,13 @@ pub fn results(calculator: &Calculator) -> Vec<String> {
         .iter()
         .map(|line| line.output.result.clone())
         .collect()
+}
+
+/// The value a settings screen (WINDOW, TBLSET) shows on the row labeled `label`.
+pub fn field_value(calculator: &Calculator, label: &str) -> String {
+    let ScreenView::Fields(fields) = calculator.screen().view else {
+        panic!("expected a settings screen");
+    };
+    let row = fields.rows.iter().find(|row| row.label == label);
+    row.expect("the row is shown").value.clone()
 }

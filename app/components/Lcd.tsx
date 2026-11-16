@@ -2,12 +2,13 @@ import { Text, View } from "nsh";
 import type { Screen } from "tino/native";
 import { modifierIndicator } from "./lcdCells";
 import { ErrorView } from "./screens/ErrorView";
+import { FieldsView } from "./screens/FieldsView";
 import { FunctionsView } from "./screens/FunctionsView";
 import { GraphView } from "./screens/GraphView";
 import { HomeView } from "./screens/HomeView";
 import { MenuView } from "./screens/MenuView";
 import { ModeView } from "./screens/ModeView";
-import { WindowView } from "./screens/WindowView";
+import { TableView } from "./screens/TableView";
 
 /** The status bar: the settings in force, then the pending modifier. */
 function StatusBar(props: { screen: () => Screen }) {
@@ -36,7 +37,8 @@ export function Lcd(props: { screen: () => Screen }) {
         <If when={props.screen().functions}>
           {(functions) => <FunctionsView functions={functions} cursorStyle={cursorStyle} />}
         </If>
-        <If when={props.screen().window}>{(window) => <WindowView window={window} cursorStyle={cursorStyle} />}</If>
+        <If when={props.screen().fields}>{(fields) => <FieldsView fields={fields} cursorStyle={cursorStyle} />}</If>
+        <If when={props.screen().table}>{(table) => <TableView table={table} />}</If>
         <If when={props.screen().graph}>{(graph) => <GraphView graph={graph} />}</If>
         <If when={props.screen().menu}>{(menu) => <MenuView menu={menu} />}</If>
       </View>

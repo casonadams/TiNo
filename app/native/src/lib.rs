@@ -6,8 +6,8 @@ mod graphing;
 mod screen;
 
 pub use graphing::{
-    Curve, FunctionRow, FunctionsScreen, GraphScreen, MenuItem, MenuScreen, Trace, WindowRow,
-    WindowScreen,
+    Curve, FieldRow, FieldsScreen, FunctionRow, FunctionsScreen, GraphScreen, MenuItem, MenuScreen,
+    TableScreen, Trace,
 };
 use nsh_core::prelude::*;
 pub use screen::{
@@ -70,6 +70,13 @@ impl Calculator {
     /// the left; the screen after it. Only on the graph.
     pub fn trace_at(&mut self, fraction: f64) -> Screen {
         self.core.trace_at(fraction);
+        self.screen()
+    }
+
+    /// Scrolls the table by `rows` (down when positive); the screen after
+    /// it. Only on the table.
+    pub fn scroll_table(&mut self, rows: i32) -> Screen {
+        self.core.scroll_table(i64::from(rows));
         self.screen()
     }
 

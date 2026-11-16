@@ -1,11 +1,12 @@
 use super::{Calculator, HOME, View, error_view};
 use crate::{
     error_screen::{ErrorChoice, ErrorMenu, ErrorOrigin},
+    field_editor::FieldCursor,
     keymap::{Action, Command, Edit},
     list_menu::ListMenu,
     mode_screen::ModeCursor,
     token::{Digit, Token},
-    window_editor::{WindowCursor, WindowField},
+    window_editor::WindowField,
     y_editor::YCursor,
     zoom::ZoomItem,
 };
@@ -56,46 +57,43 @@ impl Calculator {
                 View::Functions(YCursor::at(slot, position, &mut self.functions))
             }
             ErrorOrigin::WindowField(field, entry) => {
-                let mut cursor = WindowCursor::new(field, &self.window, self.settings);
+                let mut cursor = self.window_cursor(field);
                 cursor.editor.replace(entry);
                 cursor.editor.place_cursor(position);
                 View::Window(cursor)
             }
-            ErrorOrigin::Window => View::Window(WindowCursor::new(
-                WindowField::XMin,
-                &self.window,
-                self.settings,
-            )),
+            ErrorOrigin::Window => View::Window(self.window_cursor(WindowField::XMin)),
+            ErrorOrigin::TableField(field, entry) => {
+                let mut cursor = self.table_setup_cursor(field);
+                cursor.editor.replace(entry);
+                cursor.editor.place_cursor(position);
+                View::TableSetup(cursor)
+            }
         }
     }
 
-    pub(super) fn perform_window(&mut self, mut cursor: WindowCursor, action: Action) -> View {
-        let down = match action {
-            Action::Insert(token) => {
-                cursor.editor.type_token(token);
-                return View::Window(cursor);
-            }
-            Action::Edit(edit) => {
-                cursor.editor.apply(edit);
-                return View::Window(cursor);
-            }
-            Action::Command(Command::Up) => false,
-            Action::Command(Command::Down | Command::Enter) => true,
-            Action::Command(_) => return View::Window(cursor),
+    /// The WINDOW cursor on `field`, showing its value.
+    pub(super) fn window_cursor(&self, field: WindowField) -> FieldCursor<WindowField> {
+        FieldCursor::new(field, field.get(&self.window), self.settings)
+    }
+
+    pub(super) fn perform_window(
+        &mut self,
+        mut cursor: FieldCursor<WindowField>,
+        action: Action,
+    ) -> View {
+        let Some(down) = cursor.perform(action) else {
+            return View::Window(cursor);
         };
-        if let Err(error) = self.commit_window(&cursor) {
-            return error;
+        match self.commit_window(&cursor) {
+            Ok(()) => View::Window(self.window_cursor(cursor.neighbor(down))),
+            Err(error) => error,
         }
-        View::Window(WindowCursor::new(
-            cursor.neighbor(down),
-            &self.window,
-            self.settings,
-        ))
     }
 
     /// Writes the WINDOW field's entry into the window; the error screen
     /// when it does not evaluate.
-    pub(super) fn commit_window(&mut self, cursor: &WindowCursor) -> Result<(), View> {
+    pub(super) fn commit_window(&mut self, cursor: &FieldCursor<WindowField>) -> Result<(), View> {
         match cursor.value(&self.memory, self.settings.angle) {
             Ok(Some(value)) => cursor.field.set(&mut self.window, value),
             Ok(None) => {}

@@ -23,10 +23,10 @@ pub struct FunctionsScreen {
     pub rows: Vec<FunctionRow>,
 }
 
-/// A WINDOW row.
+/// A settings row (WINDOW, TBLSET).
 #[derive(Debug, Clone, PartialEq, JsObject)]
-pub struct WindowRow {
-    /// `Xmin`, `Xmax`, …
+pub struct FieldRow {
+    /// `Xmin`, `TblStart`, …
     pub label: String,
     /// The value as the calculator writes it.
     pub value: String,
@@ -36,10 +36,26 @@ pub struct WindowRow {
     pub cursor: Option<u32>,
 }
 
-/// The WINDOW screen.
+/// A settings screen of typed values (WINDOW, TBLSET).
 #[derive(Debug, Clone, PartialEq, JsObject)]
-pub struct WindowScreen {
-    pub rows: Vec<WindowRow>,
+pub struct FieldsScreen {
+    /// `WINDOW` or `TABLE SETUP`.
+    pub title: String,
+    pub rows: Vec<FieldRow>,
+}
+
+/// The table of X and the graphed functions' values.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct TableScreen {
+    /// `X`, then the shown functions' names.
+    pub headers: Vec<String>,
+    /// The rows shown, one string per column; `ERROR` where a function is undefined.
+    pub rows: Vec<Vec<String>>,
+    pub selected_row: u32,
+    /// The selected column, counted among those shown.
+    pub selected_column: u32,
+    /// The selected value written out: `X=2`, `Y1=4.5`.
+    pub footer: String,
 }
 
 /// One function's values at the graph's x positions; `null` where undefined.
@@ -118,15 +134,26 @@ pub fn functions_screen(view: &calc_core::FunctionsView<'_>) -> FunctionsScreen 
     }
 }
 
-pub fn window_screen(view: &calc_core::WindowView<'_>) -> WindowScreen {
-    let rows = view.rows.iter().map(|row| WindowRow {
-        label: row.field.label().to_owned(),
+pub fn fields_screen(view: &calc_core::FieldsView<'_>) -> FieldsScreen {
+    let rows = view.rows.iter().map(|row| FieldRow {
+        label: row.label.to_owned(),
         value: row.value.clone(),
         entry: row.editing.map(|(entry, _)| texts(entry)),
         cursor: row.editing.map(|(_, cursor)| index(cursor)),
     });
-    WindowScreen {
+    FieldsScreen {
+        title: view.title.to_owned(),
         rows: rows.collect(),
+    }
+}
+
+pub fn table_screen(view: &calc_core::TableView) -> TableScreen {
+    TableScreen {
+        headers: view.headers.clone(),
+        rows: view.rows.clone(),
+        selected_row: index(view.selected_row),
+        selected_column: index(view.selected_column),
+        footer: view.footer.clone(),
     }
 }
 

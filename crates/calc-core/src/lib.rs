@@ -10,6 +10,7 @@ pub mod error;
 pub mod error_screen;
 pub mod eval;
 pub mod expr;
+pub mod field_editor;
 pub mod format;
 pub mod functions;
 pub mod home;
@@ -23,6 +24,7 @@ pub mod parse;
 pub mod plot;
 pub mod screen;
 pub mod settings;
+pub mod table;
 pub mod token;
 pub mod trace;
 pub mod trig;
@@ -38,9 +40,9 @@ pub use home::HistoryLine;
 pub use key::{Key, UnknownKey};
 pub use mode_screen::ModeRow;
 pub use screen::{
-    CursorStyle, ErrorView, FunctionRowView, FunctionsView, GraphView, HomeView, MenuItemView,
-    MenuView, ModeRowView, ModeView, RowFocus, Screen, ScreenView, TraceView, WindowRowView,
-    WindowView,
+    CursorStyle, ErrorView, FieldRowView, FieldsView, FunctionRowView, FunctionsView, GraphView,
+    HomeView, MenuItemView, MenuView, ModeRowView, ModeView, RowFocus, Screen, ScreenView,
+    TableView, TraceView,
 };
 pub use token::Token;
 pub use window_editor::WindowField;
