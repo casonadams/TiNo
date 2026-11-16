@@ -137,8 +137,8 @@ pub struct TableView {
     pub footer: String,
 }
 
-/// The graph screen: the window, the sampled functions, tick positions and
-/// the trace cursor when tracing.
+/// The graph screen: the window, the sampled functions, tick positions, the
+/// trace cursor when tracing, and a CALC item under way.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GraphView {
     pub window: Window,
@@ -146,6 +146,20 @@ pub struct GraphView {
     pub x_ticks: Vec<f64>,
     pub y_ticks: Vec<f64>,
     pub trace: Option<TraceView>,
+    pub calc: Option<CalcView>,
+}
+
+/// What a CALC item shows over the graph.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CalcView {
+    /// The prompt waiting for a point (`Left Bound?`), or the result's title (`Zero`).
+    pub heading: Option<&'static str>,
+    /// value: the X typed so far and the cursor in it.
+    pub entry: Option<(Vec<Token>, usize)>,
+    /// The result's own value as the calculator writes it (`dy/dx=4`).
+    pub value: Option<String>,
+    /// The interval of x shaded under the traced function, for ∫f(x)dx.
+    pub shade: Option<(f64, f64)>,
 }
 
 /// The trace cursor's function and point, with the bottom line's texts.

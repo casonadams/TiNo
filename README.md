@@ -21,13 +21,15 @@ Texas Instruments.
 - **Errors**: an error screen with Quit and Goto (back to the token at fault).
 - **Graphing**: ten Y= functions, WINDOW, ZOOM (Zoom In/Out, ZDecimal, ZSquare, ZStandard, ZTrig, ZoomFit), TRACE;
   drag to pan, wheel or pinch to zoom, tap to trace.
+- **CALC (2nd TRACE)**: value, zero, minimum, maximum, intersect, dy/dx and ∫f(x)dx (shaded); mark bounds, curves
+  and guesses with the trace cursor and ENTER.
 - **TABLE and TBLSET**: X from TblStart by ΔTbl beside the graphed functions; wheel or drag to scroll.
 - **Kept between visits**: memory, settings, functions, window, table settings, history and the chosen skin, in the
   browser's local storage.
 - **Settings (ON)**: ON opens a settings screen to pick the skin, Color (the default) or Classic; tap one or use
   ▲ ▼, then ON, CLEAR or ENTER to return.
 
-Not yet: lists, statistics, matrices, complex numbers, programs, and the CALC menu.
+Not yet: lists, statistics, matrices, complex numbers and programs.
 Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.
 
 ### Computer keyboard

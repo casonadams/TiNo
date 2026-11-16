@@ -59,6 +59,17 @@ test("a function typed in Y= graphs, and TRACE reports its points", async () => 
   expect(app.texts()).not.toContain("X=0");
 });
 
+test("2nd CALC asks for points on the graph and shows the result", async () => {
+  const app = await open("./App.tsx");
+  for (const key of ["y-equals", "xt-theta-n", "square", "second", "trace"]) await app.press(`id:key-${key}`);
+  expect(app.texts()).toContain("1:value");
+  await app.press("id:key-6");
+  expect(app.texts()).toContain("Y1=X²");
+  await app.press("id:key-right");
+  await app.press("id:key-enter");
+  expect(app.texts().some((text) => text.startsWith("dy/dx="))).toBe(true);
+});
+
 test("dragging the graph moves the window; tapping it traces", async () => {
   const app = await open("./App.tsx");
   for (const key of ["y-equals", "xt-theta-n", "graph"]) await app.press(`id:key-${key}`);

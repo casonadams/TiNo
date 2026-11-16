@@ -1,7 +1,40 @@
 import { Canvas, createAnimatedValue, Text, View } from "nsh";
-import type { GraphScreen } from "tino/native";
+import type { CalcPanel, CursorStyle, GraphScreen } from "tino/native";
 import { panGraph, traceAt, zoomGraph } from "../../store";
+import { EntryLine } from "../EntryLine";
 import { drawGraph } from "../graphDrawing";
+
+/** A CALC item's line: its prompt or result title, the X being typed for value, or its value (`dy/dx=4`). */
+function CalcLine(props: { calc: () => CalcPanel; cursorStyle: () => CursorStyle }) {
+  return (
+    <View class="flex-row items-center gap-2" testID="calc">
+      <If when={props.calc().heading}>
+        {(heading) => (
+          <Text class="text-lcd-foreground font-semibold" style={{ fontSize: 13 }}>
+            {heading()}
+          </Text>
+        )}
+      </If>
+      <If when={props.calc().entry}>
+        {(entry) => (
+          <View class="flex-1 flex-row items-center">
+            <Text class="text-lcd-foreground" style={{ fontSize: 13 }}>
+              X=
+            </Text>
+            <EntryLine entry={entry} cursor={() => props.calc().entryCursor} cursorStyle={props.cursorStyle} size={13} />
+          </View>
+        )}
+      </If>
+      <If when={props.calc().value}>
+        {(value) => (
+          <Text class="text-lcd-foreground" style={{ fontSize: 13 }}>
+            {value()}
+          </Text>
+        )}
+      </If>
+    </View>
+  );
+}
 
 /** A drag shorter than this, in points, is a tap: it traces where it lifted. */
 const TAP_SLOP = 4;
@@ -10,7 +43,7 @@ const WHEEL_ZOOM_SCALE = 300;
 const LINE_HEIGHT = 16;
 
 /** The graph: drag to pan, wheel or pinch to zoom, tap to trace; the trace's point below it. */
-export function GraphView(props: { graph: () => GraphScreen }) {
+export function GraphView(props: { graph: () => GraphScreen; cursorStyle: () => CursorStyle }) {
   let size = { width: 1, height: 1 };
   let last = { x: 0, y: 0 };
   let travelled = 0;
@@ -52,6 +85,7 @@ export function GraphView(props: { graph: () => GraphScreen }) {
           pinch.set(1);
         }}
       />
+      <If when={props.graph().calc}>{(calc) => <CalcLine calc={calc} cursorStyle={props.cursorStyle} />}</If>
       <If when={props.graph().trace}>
         {(trace) => (
           <View class="gap-0.5" testID="trace">

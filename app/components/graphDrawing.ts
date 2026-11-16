@@ -17,17 +17,46 @@ const CURVE_TOKENS = [
 
 const TICK = 4;
 
+/** Graph coordinates to the canvas's points. */
+interface Scale {
+  x: (x: number) => number;
+  y: (y: number) => number;
+}
+
 /** Maps graph coordinates to the canvas's points. */
-function scales(graph: GraphScreen, width: number, height: number) {
+function scales(graph: GraphScreen, width: number, height: number): Scale {
   return {
     x: (x: number) => ((x - graph.xMin) / (graph.xMax - graph.xMin)) * width,
     y: (y: number) => height - ((y - graph.yMin) / (graph.yMax - graph.yMin)) * height,
   };
 }
 
-/** Draws the axes with their ticks, each curve in its slot's color, and the trace cursor. */
+/** ∫f(x)dx's area: between the traced curve and y=0 over the shaded interval, in the curve's color. */
+function drawShade(cx: CanvasRenderingContext2D, graph: GraphScreen, scale: Scale) {
+  const { calc, trace } = graph;
+  if (!calc || !trace || calc.shadeFrom == null || calc.shadeTo == null) return;
+  const curve = graph.curves.find((candidate) => candidate.slot === trace.slot);
+  if (!curve) return;
+  const [from, to] = [Math.min(calc.shadeFrom, calc.shadeTo), Math.max(calc.shadeFrom, calc.shadeTo)];
+  const baseline = scale.y(0);
+  cx.fillStyle = token(CURVE_TOKENS[curve.slot % CURVE_TOKENS.length]);
+  cx.globalAlpha = 0.3;
+  cx.beginPath();
+  cx.moveTo(scale.x(from), baseline);
+  graph.xs.forEach((x, i) => {
+    const y = curve.ys[i];
+    if (x >= from && x <= to && y != null) cx.lineTo(scale.x(x), scale.y(y));
+  });
+  cx.lineTo(scale.x(to), baseline);
+  cx.closePath();
+  cx.fill();
+  cx.globalAlpha = 1;
+}
+
+/** Draws ∫f(x)dx's shading, the axes with their ticks, each curve in its slot's color, and the trace cursor. */
 export function drawGraph(cx: CanvasRenderingContext2D, graph: GraphScreen, width: number, height: number) {
   const scale = scales(graph, width, height);
+  drawShade(cx, graph, scale);
   cx.strokeStyle = token("graph-axis");
   cx.lineWidth = 1;
   cx.beginPath();

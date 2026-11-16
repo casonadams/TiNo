@@ -80,7 +80,23 @@ pub struct Trace {
     pub y_text: String,
 }
 
-/// The graph screen: the window's ranges, the sampled functions, tick positions and the trace.
+/// What a CALC item shows over the graph.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct CalcPanel {
+    /// The prompt waiting for a point (`Left Bound?`), or the result's title (`Zero`).
+    pub heading: Option<String>,
+    /// value: the X typed so far, one string per token; `null` for other items.
+    pub entry: Option<Vec<String>>,
+    /// The index of the token under the cursor in `entry`.
+    pub entry_cursor: u32,
+    /// The result's own value (`dy/dx=4`).
+    pub value: Option<String>,
+    /// For ∫f(x)dx: the x interval shaded under the traced function.
+    pub shade_from: Option<f64>,
+    pub shade_to: Option<f64>,
+}
+
+/// The graph screen: the window's ranges, the sampled functions, tick positions, the trace and a CALC item.
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct GraphScreen {
     pub x_min: f64,
@@ -93,6 +109,7 @@ pub struct GraphScreen {
     pub x_ticks: Vec<f64>,
     pub y_ticks: Vec<f64>,
     pub trace: Option<Trace>,
+    pub calc: Option<CalcPanel>,
 }
 
 /// A menu item and the key that picks it (`1`, `0`, `A`).
@@ -182,6 +199,22 @@ pub fn graph_screen(view: &calc_core::GraphView) -> GraphScreen {
         x_ticks: view.x_ticks.clone(),
         y_ticks: view.y_ticks.clone(),
         trace,
+        calc: view.calc.as_ref().map(calc_panel),
+    }
+}
+
+fn calc_panel(calc: &calc_core::screen::CalcView) -> CalcPanel {
+    let (entry, entry_cursor) = match &calc.entry {
+        Some((tokens, cursor)) => (Some(texts(tokens)), index(*cursor)),
+        None => (None, 0),
+    };
+    CalcPanel {
+        heading: calc.heading.map(str::to_owned),
+        entry,
+        entry_cursor,
+        value: calc.value.clone(),
+        shade_from: calc.shade.map(|(from, _)| from),
+        shade_to: calc.shade.map(|(_, to)| to),
     }
 }
 

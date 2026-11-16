@@ -73,13 +73,16 @@ impl CalcItem {
 }
 
 /// What a finished CALC item shows: the point the cursor moves to, the
-/// title over it, a value of its own (`dy/dx=…`), and the interval shaded.
+/// title over it, a value of its own (`dy/dx=…`), the interval shaded, and
+/// the y to show when the item knows it exactly (0 at a zero, not the
+/// rounding left in the function's value there).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CalcResult {
     pub cursor: TraceCursor,
     pub title: Option<&'static str>,
     pub value: Option<(&'static str, f64)>,
     pub shade: Option<(f64, f64)>,
+    pub exact_y: Option<f64>,
 }
 
 /// Computes `item` from the points marked for its prompts, reading graphed
@@ -101,11 +104,13 @@ pub fn compute(
         title,
         value: None,
         shade: None,
+        exact_y: None,
     };
     match (item, &xs[..]) {
-        (CalcItem::Zero, &[left, right, guess]) => {
-            Ok(result(at(zero(f, (left, right), guess)?), Some("Zero")))
-        }
+        (CalcItem::Zero, &[left, right, guess]) => Ok(CalcResult {
+            exact_y: Some(0.0),
+            ..result(at(zero(f, (left, right), guess)?), Some("Zero"))
+        }),
         (CalcItem::Minimum, &[left, right]) => {
             let x = numeric::extremum(f, (left, right), Extremum::Minimum)?;
             Ok(result(at(x), Some("Minimum")))
@@ -166,6 +171,7 @@ fn intersection(
                     title: Some("Intersection"),
                     value: None,
                     shade: None,
+                    exact_y: None,
                 });
             }
         }

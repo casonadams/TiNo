@@ -1,4 +1,4 @@
-use super::{Calculator, View};
+use super::{Calculator, View, calc::calc_menu};
 use crate::{
     error_screen::{ErrorChoice, ErrorMenu},
     field_editor::{Field, FieldCursor},
@@ -44,6 +44,10 @@ impl Calculator {
                 View::Table(cursor) => ScreenView::Table(self.table_view(*cursor)),
                 View::Graph(trace) => ScreenView::Graph(Box::new(self.graph_view(*trace))),
                 View::Zoom(menu) => ScreenView::Menu(zoom_menu(*menu)),
+                View::CalcMenu(menu) => ScreenView::Menu(calc_menu(*menu)),
+                View::GraphCalc(session) => {
+                    ScreenView::Graph(Box::new(self.graph_calc_view(session)))
+                }
                 View::Menu(menu) => ScreenView::Menu(typing_menu(menu.cursor)),
             },
         }
@@ -103,7 +107,7 @@ impl Calculator {
         }
     }
 
-    fn graph_view(&self, trace: Option<TraceCursor>) -> GraphView {
+    pub(super) fn graph_view(&self, trace: Option<TraceCursor>) -> GraphView {
         let functions = self.functions.parse_graphed().unwrap_or_default();
         let context = self.context();
         let trace = trace.and_then(|cursor| {
@@ -127,6 +131,7 @@ impl Calculator {
             x_ticks: self.window.x_ticks(),
             y_ticks: self.window.y_ticks(),
             trace,
+            calc: None,
         }
     }
 

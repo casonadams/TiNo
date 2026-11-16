@@ -42,7 +42,7 @@ export function Lcd(props: { screen: () => Screen; settingsOpen: () => boolean }
       </If>
       <If when={props.screen().fields}>{(fields) => <FieldsView fields={fields} cursorStyle={cursorStyle} />}</If>
       <If when={props.screen().table}>{(table) => <TableView table={table} />}</If>
-      <If when={props.screen().graph}>{(graph) => <GraphView graph={graph} />}</If>
+      <If when={props.screen().graph}>{(graph) => <GraphView graph={graph} cursorStyle={cursorStyle} />}</If>
       <If when={props.screen().menu}>{(menu) => <MenuView menu={menu} />}</If>
     </View>
   );

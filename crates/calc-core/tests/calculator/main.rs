@@ -1,3 +1,4 @@
+mod calc_menu;
 mod graphing;
 mod home_screen;
 mod keypad;

@@ -3,6 +3,7 @@
 //! GRAPH, TBLSET, TABLE, MODE, 2nd QUIT) switch screens from anywhere but
 //! the error screen.
 
+mod calc;
 mod graph;
 mod home;
 mod persist;
@@ -19,6 +20,7 @@ use crate::{
     eval::{Context, Memory},
     field_editor::FieldCursor,
     functions::Functions,
+    graph_calc::CalcItem,
     home::{EntryStack, History, HistorySelection},
     key::Key,
     keymap::{self, Action, Command},
@@ -45,6 +47,10 @@ enum View {
     Window(FieldCursor<WindowField>),
     /// The graph, with the trace cursor while tracing.
     Graph(Option<TraceCursor>),
+    /// 2nd CALC: the items that compute on the graph.
+    CalcMenu(ListMenu),
+    /// A CALC item under way on the graph.
+    GraphCalc(calc::CalcSession),
     Zoom(ListMenu),
     TableSetup(FieldCursor<TableField>),
     Table(TableCursor),
@@ -87,6 +93,7 @@ enum Destination {
     Functions,
     Window,
     Zoom,
+    Calc,
     Graph,
     Trace,
     TableSetup,
@@ -101,6 +108,7 @@ impl Destination {
             Command::YEquals => Destination::Functions,
             Command::Window => Destination::Window,
             Command::Zoom => Destination::Zoom,
+            Command::Calc => Destination::Calc,
             Command::Graph => Destination::Graph,
             Command::Trace => Destination::Trace,
             Command::TableSetup => Destination::TableSetup,
@@ -168,6 +176,8 @@ impl Calculator {
             View::Table(cursor) => self.perform_table(cursor, action),
             View::Graph(trace) => self.perform_graph(trace, action),
             View::Zoom(menu) => self.perform_zoom(menu, action),
+            View::CalcMenu(menu) => self.perform_calc_menu(menu, action),
+            View::GraphCalc(session) => self.perform_graph_calc(session, action),
             View::Menu(menu) => self.perform_menu(menu, action),
         }
     }
@@ -192,6 +202,7 @@ impl Calculator {
             }
             Destination::Window => View::Window(self.window_cursor(WindowField::XMin)),
             Destination::Zoom => View::Zoom(ListMenu::new(ZoomItem::ALL.len())),
+            Destination::Calc => View::CalcMenu(ListMenu::new(CalcItem::ALL.len())),
             Destination::Graph => self.graph(false),
             Destination::Trace => self.graph(true),
             Destination::TableSetup => View::TableSetup(self.table_setup_cursor(TableField::Start)),
