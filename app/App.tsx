@@ -20,7 +20,7 @@ function App() {
       }}
     >
       <View
-        class="bg-faceplate border-faceplate-foreground/15 w-full flex-1 gap-4 rounded-3xl border p-4 shadow-2xl"
+        class="bg-faceplate border-faceplate-foreground/15 w-full flex-1 gap-3 rounded-3xl border p-3 shadow-2xl"
         style={{ maxWidth: 420, maxHeight: 900 }}
       >
         <Lcd screen={currentScreen} settingsOpen={settingsOpen} />
