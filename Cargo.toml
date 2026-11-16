@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["crates/calc-core", "app/native"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+publish = false
+
+[workspace.dependencies]
+calc-core = { path = "crates/calc-core" }
+nsh-core = "=0.5.1"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+cognitive_complexity = "warn"
+too_many_lines = "warn"

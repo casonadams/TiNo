@@ -1,0 +1,32 @@
+{
+  "cssVars": {
+    "theme": {
+      "radius": "0.5rem"
+    },
+    "light": {
+      "background": "#d7dbe0",
+      "foreground": "#15171a",
+      "faceplate": "#23272e",
+      "faceplate-foreground": "#e8eaed",
+      "bezel": "#0f1114",
+      "lcd": "#f5f7f4",
+      "lcd-foreground": "#121417",
+      "lcd-muted": "#6b7178",
+      "lcd-cursor": "#121417",
+      "key": "#353a42",
+      "key-foreground": "#f2f3f5",
+      "key-function": "#4a5059",
+      "key-function-foreground": "#f2f3f5",
+      "key-number": "#e6e8eb",
+      "key-number-foreground": "#15171a",
+      "key-operator": "#5a616b",
+      "key-operator-foreground": "#ffffff",
+      "key-second": "#4fb3e8",
+      "key-second-foreground": "#0b1a24",
+      "key-alpha": "#5cc46e",
+      "key-alpha-foreground": "#0b1f10",
+      "legend-second": "#6cc4f2",
+      "legend-alpha": "#7bd88a"
+    }
+  }
+}

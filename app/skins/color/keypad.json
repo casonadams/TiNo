@@ -1,0 +1,78 @@
+{
+  "functionRow": [
+    { "key": "y-equals", "label": "y=", "second": "stat plot", "alpha": "f1", "variant": "function" },
+    { "key": "window", "label": "window", "second": "tblset", "alpha": "f2", "variant": "function" },
+    { "key": "zoom", "label": "zoom", "second": "format", "alpha": "f3", "variant": "function" },
+    { "key": "trace", "label": "trace", "second": "calc", "alpha": "f4", "variant": "function" },
+    { "key": "graph", "label": "graph", "second": "table", "alpha": "f5", "variant": "function" }
+  ],
+  "control": [
+    [
+      { "key": "second", "label": "2nd", "variant": "second" },
+      { "key": "mode", "label": "mode", "second": "quit" },
+      { "key": "del", "label": "del", "second": "ins" }
+    ],
+    [
+      { "key": "alpha", "label": "alpha", "second": "A-lock", "variant": "alpha" },
+      { "key": "xt-theta-n", "label": "X,T,θ,n", "second": "link" },
+      { "key": "stat", "label": "stat", "second": "list" }
+    ]
+  ],
+  "dpad": {
+    "up": { "key": "up", "label": "▲" },
+    "left": { "key": "left", "label": "◀" },
+    "right": { "key": "right", "label": "▶" },
+    "down": { "key": "down", "label": "▼" }
+  },
+  "main": [
+    [
+      { "key": "math", "label": "math", "second": "test", "alpha": "A" },
+      { "key": "apps", "label": "apps", "second": "angle", "alpha": "B" },
+      { "key": "prgm", "label": "prgm", "second": "draw", "alpha": "C" },
+      { "key": "vars", "label": "vars", "second": "distr" },
+      { "key": "clear", "label": "clear" }
+    ],
+    [
+      { "key": "inverse", "label": "x⁻¹", "second": "matrix" },
+      { "key": "sin", "label": "sin", "second": "sin⁻¹", "alpha": "E" },
+      { "key": "cos", "label": "cos", "second": "cos⁻¹", "alpha": "F" },
+      { "key": "tan", "label": "tan", "second": "tan⁻¹", "alpha": "G" },
+      { "key": "power", "label": "^", "second": "π", "alpha": "H", "variant": "operator" }
+    ],
+    [
+      { "key": "square", "label": "x²", "second": "√", "alpha": "I" },
+      { "key": "comma", "label": ",", "second": "EE", "alpha": "J" },
+      { "key": "left-paren", "label": "(", "second": "{", "alpha": "K" },
+      { "key": "right-paren", "label": ")", "second": "}", "alpha": "L" },
+      { "key": "divide", "label": "÷", "second": "e", "alpha": "M", "variant": "operator" }
+    ],
+    [
+      { "key": "log", "label": "log", "second": "10ˣ", "alpha": "N" },
+      { "key": "7", "label": "7", "second": "u", "alpha": "O", "variant": "number" },
+      { "key": "8", "label": "8", "second": "v", "alpha": "P", "variant": "number" },
+      { "key": "9", "label": "9", "second": "w", "alpha": "Q", "variant": "number" },
+      { "key": "multiply", "label": "×", "second": "[", "alpha": "R", "variant": "operator" }
+    ],
+    [
+      { "key": "ln", "label": "ln", "second": "eˣ", "alpha": "S" },
+      { "key": "4", "label": "4", "second": "L4", "alpha": "T", "variant": "number" },
+      { "key": "5", "label": "5", "second": "L5", "alpha": "U", "variant": "number" },
+      { "key": "6", "label": "6", "second": "L6", "alpha": "V", "variant": "number" },
+      { "key": "subtract", "label": "−", "second": "]", "alpha": "W", "variant": "operator" }
+    ],
+    [
+      { "key": "store", "label": "sto→", "second": "rcl", "alpha": "X" },
+      { "key": "1", "label": "1", "second": "L1", "alpha": "Y", "variant": "number" },
+      { "key": "2", "label": "2", "second": "L2", "alpha": "Z", "variant": "number" },
+      { "key": "3", "label": "3", "second": "L3", "alpha": "θ", "variant": "number" },
+      { "key": "add", "label": "+", "second": "mem", "alpha": "\"", "variant": "operator" }
+    ],
+    [
+      { "key": "on", "label": "on", "second": "off" },
+      { "key": "0", "label": "0", "second": "catalog", "alpha": "␣", "variant": "number" },
+      { "key": "decimal", "label": ".", "second": "i", "alpha": ":", "variant": "number" },
+      { "key": "negate", "label": "(−)", "second": "ans", "alpha": "?", "variant": "number" },
+      { "key": "enter", "label": "enter", "second": "entry", "alpha": "solve", "variant": "operator" }
+    ]
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "TiNo",
+  "id": "io.github.casonadams.tino",
+  "version": "0.1.0",
+  "build": 1,
+  "rust": "native",
+  "theme": "skins/color/theme.json",
+  "appearance": "light"
+}
