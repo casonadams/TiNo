@@ -1,9 +1,10 @@
 [package]
 name = "calc-core"
-description = "Calculator domain: keys, tokens, entry editing and the key-driven state machine."
+description = "Calculator domain: keys, tokens, parsing, evaluation, screens, graphing and save/load."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
 publish.workspace = true
 
 [lints]

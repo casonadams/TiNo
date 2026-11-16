@@ -1,0 +1,76 @@
+# TiNo
+
+A graphing calculator in the style of the TI-84 Plus CE, for the browser. Live at
+**https://casonadams.github.io/TiNo/**.
+
+Built with [Native Shell](https://nsh.dev): the calculator itself is a Rust crate with no UI dependency, and a small
+TSX app draws its screen and keypad. TiNo is an independent clean-room project, not affiliated with or endorsed by
+Texas Instruments.
+
+## What it does
+
+- **Home screen**: TI-style token entry (`sin(` is one token), 2nd and ALPHA (2nd ALPHA locks), overwrite and insert
+  editing, the calculator's precedence (implied multiplication, `⁻2²` is ⁻4, `^` groups left to right), Ans, `→`
+  into A–Z and θ, ENTER to repeat, 2nd ENTRY to recall, typeset entries with Float/Fix/Sci/Eng results.
+- **MODE**: Normal, Sci, Eng; Float or Fix 0–9; Radian or Degree.
+- **Errors**: an error screen with Quit and Goto (back to the fault).
+- **Graphing**: ten Y= functions, WINDOW, ZOOM (Zoom In/Out, ZDecimal, ZSquare, ZStandard, ZTrig, ZoomFit), TRACE;
+  drag to pan, wheel or pinch to zoom, tap to trace.
+- **TABLE and TBLSET**: X from TblStart by ΔTbl beside the graphed functions; wheel or drag to scroll.
+- **Kept between visits**: memory, settings, functions, window, table settings, history and the chosen skin, in the
+  browser's local storage.
+- **Skins**: Color and Classic, switched at the top of the page.
+
+Not yet: lists, statistics, matrices, complex numbers, programs, the CALC menu, and the MATH, TEST and VARS menus.
+Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.
+
+### Computer keyboard
+
+| Keys | Calculator key |
+|---|---|
+| `0`–`9` `.` `,` | digits, decimal point, comma |
+| `+` `-` `*` `/` `^` `(` `)` | + − × ÷ ^ ( ) |
+| Enter, Backspace or Delete, Escape | ENTER, DEL, CLEAR |
+| Arrow keys | ▲ ▼ ◀ ▶ |
+
+## Development
+
+Tools: [mise](https://mise.jdx.dev) (pins the `nsh` CLI in `mise.toml`), Rust stable 1.97 or newer with the
+`wasm32-unknown-unknown` target (`rust-toolchain.toml` adds it), and for web builds a clang that targets
+WebAssembly plus `llvm-ar` (on macOS, Homebrew's `llvm`).
+
+```sh
+mise install                                    # the pinned nsh
+
+cargo test --workspace                          # the calculator's tests
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all
+
+cd app
+nsh check                                       # type-checks the TSX against the Rust exports
+nsh test                                        # the app's headless tests
+nsh run --target web                            # dev server with hot reload
+
+# a production web build (macOS)
+CC_wasm32_unknown_unknown=/opt/homebrew/opt/llvm/bin/clang \
+AR_wasm32_unknown_unknown=/opt/homebrew/opt/llvm/bin/llvm-ar \
+  nsh package --target web                      # writes app/.nsh/out/TiNo/
+```
+
+Every push to `main` runs the checks above in GitHub Actions and deploys the web build to GitHub Pages
+(`.github/workflows/ci.yml`).
+
+## Layout
+
+```
+crates/calc-core/   the calculator: keys, tokens, parser, evaluator, formatting, screens, graphing, table,
+                    save/load; no UI or NSH dependency
+app/native/         the Rust bridge: exports calc-core to TSX as `tino/native`
+app/                the TSX app: App.tsx, store.ts, components/, skins/
+```
+
+[AGENTS.md](AGENTS.md) describes the architecture and conventions in more detail.
+
+## License
+
+[MIT](LICENSE)
