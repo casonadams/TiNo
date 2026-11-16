@@ -101,20 +101,32 @@ test("the calculator is kept between sessions", async () => {
   for (const text of ["123", "NORMAL FLOAT DEGREE"]) expect(second.texts()).toContain(text);
 });
 
-test("choosing a skin restyles the calculator and is kept between sessions", async () => {
+test("ON opens settings, where a skin restyles the calculator and is kept between sessions", async () => {
   const first = await open("./App.tsx");
   const colorStatus = first.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
+  await first.press("id:key-on");
+  expect(first.shows("id:settings")).toBe(true);
   await first.press("id:skin-classic");
+  await first.press("id:key-on");
+  expect(first.shows("id:settings")).toBe(false);
   const classicStatus = first.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
   expect(classicStatus).not.toBe(colorStatus);
   const second = await open("./App.tsx", { storage: first.storage() });
   await second.waitUntil(() => second.spanStyle("text:NORMAL FLOAT RADIAN")?.color === classicStatus);
 });
 
-test("every key of every skin is a key the calculator knows", async () => {
+test("arrows on the settings screen step through the skins and ENTER returns", async () => {
+  const app = await open("./App.tsx");
+  const colorStatus = app.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
+  for (const key of ["on", "down", "enter"]) await app.press(`id:key-${key}`);
+  expect(app.shows("id:settings")).toBe(false);
+  expect(app.spanStyle("text:NORMAL FLOAT RADIAN")?.color).not.toBe(colorStatus);
+});
+
+test("every key of every skin but ON, which opens settings, is a key the calculator knows", async () => {
   for (const skin of SKINS) {
     const app = await open("./App.tsx");
-    await app.press(`id:skin-${skin.id}`);
-    for (const spec of keysOf(skin.keypad)) await app.press(`id:key-${spec.key}`);
+    for (const target of ["id:key-on", `id:skin-${skin.id}`, "id:key-on"]) await app.press(target);
+    for (const spec of keysOf(skin.keypad).filter((spec) => spec.key !== "on")) await app.press(`id:key-${spec.key}`);
   }
 });

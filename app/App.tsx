@@ -1,13 +1,13 @@
 import { mount, View } from "nsh";
 import { Keypad } from "./components/Keypad";
 import { Lcd } from "./components/Lcd";
-import { SkinPicker } from "./components/SkinPicker";
 import { bindPhysicalKeys } from "./input/physicalKeys";
+import { pressKey, settingsOpen } from "./settings";
 import { currentSkin, restoreSkin } from "./skinStore";
-import { currentScreen, press, restoreCalculator } from "./store";
+import { currentScreen, restoreCalculator } from "./store";
 
 function App() {
-  bindPhysicalKeys(press);
+  bindPhysicalKeys(pressKey);
   void restoreCalculator();
   void restoreSkin();
   return (
@@ -19,13 +19,12 @@ function App() {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <SkinPicker />
       <View
         class="bg-faceplate border-faceplate-foreground/15 w-full flex-1 gap-4 rounded-3xl border p-4 shadow-2xl"
         style={{ maxWidth: 420, maxHeight: 900 }}
       >
-        <Lcd screen={currentScreen} />
-        <Keypad layout={currentSkin().keypad} onPress={press} />
+        <Lcd screen={currentScreen} settingsOpen={settingsOpen} />
+        <Keypad layout={currentSkin().keypad} onPress={pressKey} />
       </View>
     </View>
   );

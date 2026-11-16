@@ -23,7 +23,8 @@ Texas Instruments.
 - **TABLE and TBLSET**: X from TblStart by ΔTbl beside the graphed functions; wheel or drag to scroll.
 - **Kept between visits**: memory, settings, functions, window, table settings, history and the chosen skin, in the
   browser's local storage.
-- **Skins**: Color and Classic, switched at the top of the page.
+- **Settings (ON)**: ON opens a settings screen to pick the skin, Color (the default) or Classic; tap one or use
+  ▲ ▼, then ON, CLEAR or ENTER to return.
 
 Not yet: lists, statistics, matrices, complex numbers, programs, and the CALC menu.
 Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.

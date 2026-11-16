@@ -8,6 +8,7 @@ import { GraphView } from "./screens/GraphView";
 import { HomeView } from "./screens/HomeView";
 import { MenuView } from "./screens/MenuView";
 import { ModeView } from "./screens/ModeView";
+import { SettingsView } from "./screens/SettingsView";
 import { TableView } from "./screens/TableView";
 
 /** The status bar: the settings in force, then the pending modifier. */
@@ -24,23 +25,30 @@ function StatusBar(props: { screen: () => Screen }) {
   );
 }
 
-/** The screen: the status bar over whichever screen the calculator shows. */
-export function Lcd(props: { screen: () => Screen }) {
+/** The screen: the status bar over the settings screen while `settingsOpen`, else whichever screen the calculator shows. */
+export function Lcd(props: { screen: () => Screen; settingsOpen: () => boolean }) {
   const cursorStyle = () => props.screen().cursorStyle;
+  const calculatorScreen = (
+    <View class="flex-1 gap-2">
+      <If when={props.screen().home}>{(home) => <HomeView home={home} cursorStyle={cursorStyle} />}</If>
+      <If when={props.screen().mode}>{(mode) => <ModeView mode={mode} />}</If>
+      <If when={props.screen().error}>{(error) => <ErrorView error={error} />}</If>
+      <If when={props.screen().functions}>
+        {(functions) => <FunctionsView functions={functions} cursorStyle={cursorStyle} />}
+      </If>
+      <If when={props.screen().fields}>{(fields) => <FieldsView fields={fields} cursorStyle={cursorStyle} />}</If>
+      <If when={props.screen().table}>{(table) => <TableView table={table} />}</If>
+      <If when={props.screen().graph}>{(graph) => <GraphView graph={graph} />}</If>
+      <If when={props.screen().menu}>{(menu) => <MenuView menu={menu} />}</If>
+    </View>
+  );
   return (
     <View class="bg-bezel rounded-xl p-3">
       <View class="bg-lcd rounded-md gap-2 p-3" style={{ aspectRatio: 4 / 3 }}>
         <StatusBar screen={props.screen} />
-        <If when={props.screen().home}>{(home) => <HomeView home={home} cursorStyle={cursorStyle} />}</If>
-        <If when={props.screen().mode}>{(mode) => <ModeView mode={mode} />}</If>
-        <If when={props.screen().error}>{(error) => <ErrorView error={error} />}</If>
-        <If when={props.screen().functions}>
-          {(functions) => <FunctionsView functions={functions} cursorStyle={cursorStyle} />}
+        <If when={props.settingsOpen()} else={calculatorScreen}>
+          <SettingsView />
         </If>
-        <If when={props.screen().fields}>{(fields) => <FieldsView fields={fields} cursorStyle={cursorStyle} />}</If>
-        <If when={props.screen().table}>{(table) => <TableView table={table} />}</If>
-        <If when={props.screen().graph}>{(graph) => <GraphView graph={graph} />}</If>
-        <If when={props.screen().menu}>{(menu) => <MenuView menu={menu} />}</If>
       </View>
     </View>
   );
