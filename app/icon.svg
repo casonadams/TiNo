@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" rx="224" fill="#23272e"/>
+  <rect x="152" y="136" width="720" height="440" rx="64" fill="#0f1114"/>
+  <rect x="192" y="176" width="640" height="360" rx="36" fill="#f5f7f4"/>
+  <path d="M232 356H792M512 216V496" stroke="#b7bcc2" stroke-width="10" fill="none"/>
+  <polyline fill="none" stroke="#1f5fd6" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"
+    points="232,356 242,343 252,331 262,319 272,307 282,296 292,286 302,277 312,268 322,261 332,255 342,250 352,247 362,245 372,244 382,245 392,247 402,250 412,255 422,261 432,268 442,277 452,286 462,296 472,307 482,319 492,331 502,343 512,356 522,369 532,381 542,393 552,405 562,416 572,426 582,435 592,444 602,451 612,457 622,462 632,465 642,467 652,468 662,467 672,465 682,462 692,457 702,451 712,444 722,435 732,426 742,416 752,405 762,393 772,381 782,369 792,356"/>
+  <rect x="152" y="648" width="200" height="112" rx="36" fill="#4fb3e8"/>
+  <rect x="412" y="648" width="200" height="112" rx="36" fill="#4a5059"/>
+  <rect x="672" y="648" width="200" height="112" rx="36" fill="#4a5059"/>
+  <rect x="152" y="808" width="200" height="112" rx="36" fill="#e6e8eb"/>
+  <rect x="412" y="808" width="200" height="112" rx="36" fill="#e6e8eb"/>
+  <rect x="672" y="808" width="200" height="112" rx="36" fill="#5cc46e"/>
+</svg>

@@ -13,6 +13,7 @@ pub mod expr;
 pub mod field_editor;
 pub mod format;
 pub mod functions;
+pub mod graph_calc;
 pub mod home;
 pub mod key;
 pub mod keymap;

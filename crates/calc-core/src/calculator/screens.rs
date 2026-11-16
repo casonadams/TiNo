@@ -64,6 +64,7 @@ impl Calculator {
                 View::Window(cursor)
             }
             ErrorOrigin::Window => View::Window(self.window_cursor(WindowField::XMin)),
+            ErrorOrigin::Graph => self.graph(false),
             ErrorOrigin::TableField(field, entry) => {
                 let mut cursor = self.table_setup_cursor(field);
                 cursor.editor.replace(entry);

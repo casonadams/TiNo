@@ -52,13 +52,13 @@ impl Calculator {
         View::Graph(Some(cursor))
     }
 
-    fn step_trace(&mut self, cursor: TraceCursor, direction: f64) -> TraceCursor {
+    pub(super) fn step_trace(&mut self, cursor: TraceCursor, direction: f64) -> TraceCursor {
         let (cursor, window) = cursor.stepped(direction * self.window.x_res, self.window);
         self.window = window;
         cursor
     }
 
-    fn graphed(&self) -> Vec<usize> {
+    pub(super) fn graphed(&self) -> Vec<usize> {
         self.functions.graphed().collect()
     }
 

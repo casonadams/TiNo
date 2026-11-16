@@ -30,6 +30,8 @@ pub enum ErrorOrigin {
     WindowField(WindowField, Vec<Token>),
     /// The WINDOW settings as a whole.
     Window,
+    /// A CALC item on the graph.
+    Graph,
     /// A TBLSET field and the entry typed into it.
     TableField(TableField, Vec<Token>),
 }

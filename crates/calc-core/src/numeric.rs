@@ -248,4 +248,14 @@ mod tests {
         close(sum(Ok, 5.0, 4.0), 0.0);
         assert_eq!(sum(Ok, 0.5, 2.0).unwrap_err().kind, ErrorKind::Domain);
     }
+
+    #[test]
+    fn roots_are_found_where_the_sign_changes() {
+        close(root(|x| Ok(x * x - 2.0), (0.0, 5.0)), 2f64.sqrt());
+        close(root(|x| Ok(x - 1.0), (1.0, 3.0)), 1.0);
+        assert_eq!(
+            root(|x| Ok(x * x + 1.0), (-1.0, 1.0)).unwrap_err().kind,
+            ErrorKind::NoSignChange
+        );
+    }
 }

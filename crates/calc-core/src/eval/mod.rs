@@ -95,6 +95,11 @@ impl Context<'_> {
     pub fn y_at(&self, expr: &Expr, x: f64) -> Option<f64> {
         Evaluator::new(self).with(Letter::X, x).value(expr).ok()
     }
+
+    /// Y= function `slot` at `X = x`.
+    pub fn function_at(&self, slot: usize, x: f64) -> Result<f64, CalcError> {
+        Evaluator::new(self).with(Letter::X, x).y_var(slot, None)
+    }
 }
 
 #[derive(Clone, Copy)]

@@ -61,6 +61,10 @@ at a WebAssembly clang and `llvm-ar` (see README).
   the version; any change an older snapshot cannot be read under means a new version, and the app starts fresh.
 - **NSH** is pinned in `mise.toml` and as `=0.5.1` for `nsh-core` in `Cargo.toml`; upgrade both together and rerun
   every check. Never edit `app/.nsh/`; it is generated.
+- **The app icon** (`app/icon.png`, set in `nsh.json`; NSH derives the favicon and web app icons from it) is rendered
+  from `app/icon.svg`. ImageMagick's own SVG renderer drops the strokes, so render with QuickLook and cut the corners:
+  `qlmanage -t -s 1024 -o /tmp app/icon.svg && magick /tmp/icon.svg.png \( -size 1024x1024 xc:none -fill white -draw
+  "roundrectangle 0,0,1023,1023,224,224" \) -alpha set -compose DstIn -composite -strip app/icon.png`.
 
 ## Tests
 
