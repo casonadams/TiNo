@@ -55,6 +55,17 @@ impl Functions {
             })
             .collect()
     }
+
+    /// Every slot parsed, as Y-vars read them: an empty slot is undefined.
+    pub fn parse_all(&self) -> Vec<Result<Expr, CalcError>> {
+        self.slots
+            .iter()
+            .map(|slot| match slot.editor.tokens() {
+                [] => Err(CalcError::new(ErrorKind::Undefined)),
+                tokens => parse_function(tokens),
+            })
+            .collect()
+    }
 }
 
 /// A function's entry as an expression; storing (`→`) is not allowed in one.

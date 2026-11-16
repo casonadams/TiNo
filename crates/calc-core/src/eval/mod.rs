@@ -1,6 +1,7 @@
 //! Evaluating expressions over real numbers.
 
 mod arithmetic;
+mod calculus;
 mod calls;
 
 use std::{
@@ -14,7 +15,9 @@ use crate::{
     error::{CalcError, ErrorKind},
     expr::{Constant, Expr},
     settings::Angle,
+    table::TableSettings,
     token::Letter,
+    window::Window,
 };
 
 /// Results at or beyond this magnitude overflow, as on the calculator.
@@ -71,34 +74,104 @@ impl Memory {
     }
 }
 
-/// Evaluates `expr` over real numbers, trigonometry in `angle` units.
-pub fn evaluate(expr: &Expr, memory: &Memory, angle: Angle) -> Result<f64, CalcError> {
-    Evaluator { memory, angle }.value(expr)
+/// Everything an expression reads besides its own numbers.
+#[derive(Debug)]
+pub struct Context<'a> {
+    pub memory: &'a Memory,
+    pub angle: Angle,
+    pub window: &'a Window,
+    pub table: &'a TableSettings,
+    /// Each Y= function parsed, or why reading it fails.
+    pub functions: Vec<Result<Expr, CalcError>>,
 }
 
+impl Context<'_> {
+    /// `expr` over real numbers, trigonometry in the context's angle units.
+    pub fn evaluate(&self, expr: &Expr) -> Result<f64, CalcError> {
+        Evaluator::new(self).value(expr)
+    }
+
+    /// `expr` at `X = x`, or `None` where it is undefined.
+    pub fn y_at(&self, expr: &Expr, x: f64) -> Option<f64> {
+        Evaluator::new(self).with(Letter::X, x).value(expr).ok()
+    }
+}
+
+#[derive(Clone, Copy)]
 struct Evaluator<'a> {
-    memory: &'a Memory,
-    angle: Angle,
+    context: &'a Context<'a>,
+    /// Values given to letters by `nDeriv(`, `fnInt(`, `Σ(` and the like or
+    /// a Y= function's argument, in place of memory's.
+    bound: [Option<f64>; 27],
+    /// The Y= slots being evaluated, one bit each, to catch a function that
+    /// reads itself.
+    active: u16,
 }
 
-impl Evaluator<'_> {
+impl<'a> Evaluator<'a> {
+    fn new(context: &'a Context<'a>) -> Self {
+        Evaluator {
+            context,
+            bound: [None; 27],
+            active: 0,
+        }
+    }
+
+    fn with(mut self, letter: Letter, value: f64) -> Self {
+        self.bound[letter as usize] = Some(value);
+        self
+    }
+
     fn value(&self, expr: &Expr) -> Result<f64, CalcError> {
+        let memory = self.context.memory;
         let value = match expr {
-            Expr::Number(number) => number.value,
-            Expr::Constant(Constant::Pi) => PI,
-            Expr::Constant(Constant::E) => E,
-            Expr::Variable(letter) => self.memory.get(*letter),
-            Expr::Ans => self.memory.ans(),
-            Expr::Rand => self.memory.random(),
-            Expr::Negate(operand) => -self.value(operand)?,
-            Expr::Postfix(op, operand) => arithmetic::postfix(*op, self.value(operand)?)?,
-            Expr::Binary(op, left, right) => {
-                arithmetic::binary(*op, self.value(left)?, self.value(right)?)?
+            Expr::Number(number) => Ok(number.value),
+            Expr::Constant(Constant::Pi) => Ok(PI),
+            Expr::Constant(Constant::E) => Ok(E),
+            Expr::Variable(letter) => {
+                Ok(self.bound[*letter as usize].unwrap_or(memory.get(*letter)))
             }
-            Expr::ImpliedMultiply(left, right) => self.value(left)? * self.value(right)?,
-            Expr::Call(function, arguments) => self.call(*function, arguments)?,
+            Expr::Ans => Ok(memory.ans()),
+            Expr::Rand => Ok(memory.random()),
+            Expr::Window(field) => Ok(field.get(self.context.window)),
+            Expr::Table(field) => Ok(field.get(self.context.table)),
+            Expr::YVar(slot, argument) => self.y_var(*slot, argument.as_deref()),
+            Expr::Negate(operand) => Ok(-self.value(operand)?),
+            Expr::ImpliedMultiply(left, right) => Ok(self.value(left)? * self.value(right)?),
+            Expr::Binary(op, left, right, at) => located(
+                arithmetic::binary(*op, self.value(left)?, self.value(right)?),
+                *at,
+            ),
+            Expr::Postfix(op, operand, at) => {
+                located(arithmetic::postfix(*op, self.value(operand)?), *at)
+            }
+            Expr::Call(function, arguments, at) => located(self.call(*function, arguments), *at),
         };
-        in_range(value)
+        in_range(value?)
+    }
+
+    /// Y= function `slot` at the current `X`, or at `argument`. Errors in
+    /// it have no place in the entry reading it.
+    fn y_var(&self, slot: usize, argument: Option<&Expr>) -> Result<f64, CalcError> {
+        let bit = 1 << slot;
+        if self.active & bit != 0 {
+            return fail(ErrorKind::Invalid);
+        }
+        let function = match self.context.functions.get(slot) {
+            Some(Ok(expr)) => expr,
+            Some(Err(error)) => return fail(error.kind),
+            None => return fail(ErrorKind::Undefined),
+        };
+        let mut inner = Evaluator {
+            active: self.active | bit,
+            ..*self
+        };
+        if let Some(argument) = argument {
+            inner = inner.with(Letter::X, self.value(argument)?);
+        }
+        inner
+            .value(function)
+            .map_err(|error| CalcError::new(error.kind))
     }
 }
 
@@ -114,6 +187,11 @@ fn in_range(value: f64) -> Result<f64, CalcError> {
         return fail(ErrorKind::Overflow);
     }
     Ok(if value.abs() < UNDERFLOW { 0.0 } else { value })
+}
+
+/// An operation's result in range, its error placed at the operation's token.
+fn located(result: Result<f64, CalcError>, at: usize) -> Result<f64, CalcError> {
+    result.and_then(in_range).map_err(|error| error.or_at(at))
 }
 
 /// `value` as an integer, or a domain error when it has a fractional part

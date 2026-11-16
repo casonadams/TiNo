@@ -70,3 +70,36 @@ fn a_menu_opened_from_the_graph_types_on_the_home_screen() {
     let calculator = pressed(&[Key::Graph, Key::Math, Key::Right, Key::Digit1]);
     assert_eq!(entry_text(&calculator), "abs(");
 }
+
+#[test]
+fn vars_reads_window_settings_and_y_equals_functions() {
+    let mut calculator = pressed(&[
+        Key::YEquals,
+        Key::XtThetaN,
+        Key::Square,
+        Key::Second,
+        Key::Mode,
+    ]);
+    press(&mut calculator, &[Key::Vars, Key::Left, Key::Digit1]);
+    press(
+        &mut calculator,
+        &[Key::LeftParen, Key::Digit3, Key::RightParen],
+    );
+    assert_eq!(entry_text(&calculator), "Y₁(3)");
+    press(
+        &mut calculator,
+        &[Key::Enter, Key::Vars, Key::Digit1, Key::Enter],
+    );
+    assert_eq!(results(&calculator), ["9", "⁻10"]);
+}
+
+#[test]
+fn a_long_menu_scrolls_to_keep_the_highlighted_item_shown() {
+    let mut calculator = pressed(&[Key::Math]);
+    let (_, items) = menu_tab(&calculator).expect("the menu is shown");
+    assert_eq!(items.first().map(String::as_str), Some("1:►Frac"));
+    press(&mut calculator, &[Key::Up]);
+    let (_, items) = menu_tab(&calculator).expect("the menu is shown");
+    assert_eq!(items.last().map(String::as_str), Some("A:logBASE("));
+    assert_eq!(items.first().map(String::as_str), Some("3:³"));
+}

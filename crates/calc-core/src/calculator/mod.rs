@@ -16,7 +16,7 @@ use crate::{
     editor::Editor,
     error::CalcError,
     error_screen::{ErrorMenu, ErrorOrigin},
-    eval::Memory,
+    eval::{Context, Memory},
     field_editor::FieldCursor,
     functions::Functions,
     home::{EntryStack, History},
@@ -188,6 +188,17 @@ impl Calculator {
             Destination::Table => self.table(),
         }
     }
+
+    /// What expressions read: memory, angle units, WINDOW, TBLSET and Y=.
+    fn context(&self) -> Context<'_> {
+        Context {
+            memory: &self.memory,
+            angle: self.settings.angle,
+            window: &self.window,
+            table: &self.table,
+            functions: self.functions.parse_all(),
+        }
+    }
 }
 
 fn error_view(error: CalcError, origin: ErrorOrigin) -> View {
@@ -198,6 +209,7 @@ fn menu_of(command: Command) -> Option<MenuKind> {
     match command {
         Command::Math => Some(MenuKind::Math),
         Command::Test => Some(MenuKind::Test),
+        Command::Vars => Some(MenuKind::Vars),
         _ => None,
     }
 }

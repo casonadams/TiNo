@@ -23,9 +23,10 @@ test("enter shows the result and clears the entry line", async () => {
 test("MATH shows its tabs and an item's key types it into the entry", async () => {
   const app = await open("./App.tsx");
   await app.press("id:key-math");
-  for (const text of ["MATH", "NUM", "PROB", "1:►Frac", "A:logBASE("]) expect(app.texts()).toContain(text);
+  for (const text of ["MATH", "NUM", "PROB", "1:►Frac", "9:fnInt("]) expect(app.texts()).toContain(text);
+  expect(app.texts()).not.toContain("A:logBASE(");
   await app.press("id:key-right");
-  expect(app.texts()).toContain("0:remainder(");
+  expect(app.texts()).toContain("9:gcd(");
   await app.press("id:key-1");
   expect(app.shows("id:menu")).toBe(false);
   expect(app.shows("label:abs(")).toBe(true);

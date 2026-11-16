@@ -2,7 +2,6 @@ use super::{Calculator, HOME, View, error_view};
 use crate::{
     error::CalcError,
     error_screen::ErrorOrigin,
-    eval::evaluate,
     format::{format_fraction, format_real},
     home::Output,
     keymap::{Action, Command, Edit},
@@ -54,7 +53,7 @@ impl Calculator {
 
     fn run(&mut self, entry: &[Token]) -> Result<Output, CalcError> {
         let statement = parse(entry)?;
-        let value = evaluate(&statement.expr, &self.memory, self.settings.angle)?;
+        let value = self.context().evaluate(&statement.expr)?;
         if let Some(letter) = statement.store {
             self.memory.set(letter, value);
         }

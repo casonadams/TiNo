@@ -36,9 +36,9 @@ impl Calculator {
         &mut self,
         cursor: &FieldCursor<TableField>,
     ) -> Result<(), View> {
-        let written = cursor
-            .value(&self.memory, self.settings.angle)
-            .and_then(|value| value.map_or(Ok(()), |v| cursor.field.set(&mut self.table, v)));
+        let value = cursor.value(&self.context());
+        let written =
+            value.and_then(|value| value.map_or(Ok(()), |v| cursor.field.set(&mut self.table, v)));
         written.map_err(|error| {
             let origin = ErrorOrigin::TableField(cursor.field, cursor.editor.tokens().to_vec());
             error_view(error, origin)

@@ -1,9 +1,11 @@
-//! The MATH and TEST menus: tabs of items, each typing one token into the
-//! entry the menu was opened from.
+//! The MATH, TEST and VARS menus: tabs of items, each typing one token into
+//! the entry the menu was opened from.
 
 use crate::{
+    table::TableField,
     token::Token,
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
+    window_editor::WindowField,
 };
 
 /// A menu that types a token.
@@ -13,6 +15,8 @@ pub enum MenuKind {
     Math,
     /// 2nd TEST: TEST and LOGIC.
     Test,
+    /// VARS: WINDOW and TBLSET settings, and the Y= functions.
+    Vars,
 }
 
 /// One item: the key that picks it, its label, and what it types.
@@ -51,6 +55,11 @@ const MATH: [MenuTab; 3] = [
             entry('3', "³", Token::Postfix(PostfixOp::Cube)),
             function('4', Function::CubeRoot),
             operator('5', "ˣ√", Operator::XRoot),
+            function('6', Function::FMin),
+            function('7', Function::FMax),
+            function('8', Function::NDeriv),
+            function('9', Function::FnInt),
+            entry('0', "summation Σ(", Token::Func(Function::Summation)),
             function('A', Function::LogBase),
         ],
     },
@@ -104,11 +113,49 @@ const TEST: [MenuTab; 2] = [
     },
 ];
 
+const VARS: [MenuTab; 3] = [
+    MenuTab {
+        title: "WINDOW",
+        entries: &[
+            entry('1', "Xmin", Token::Window(WindowField::XMin)),
+            entry('2', "Xmax", Token::Window(WindowField::XMax)),
+            entry('3', "Xscl", Token::Window(WindowField::XScale)),
+            entry('4', "Ymin", Token::Window(WindowField::YMin)),
+            entry('5', "Ymax", Token::Window(WindowField::YMax)),
+            entry('6', "Yscl", Token::Window(WindowField::YScale)),
+            entry('7', "Xres", Token::Window(WindowField::XRes)),
+        ],
+    },
+    MenuTab {
+        title: "TABLE",
+        entries: &[
+            entry('1', "TblStart", Token::Table(TableField::Start)),
+            entry('2', "ΔTbl", Token::Table(TableField::Step)),
+        ],
+    },
+    MenuTab {
+        title: "Y-VARS",
+        entries: &[
+            entry('1', "Y₁", Token::YVar(0)),
+            entry('2', "Y₂", Token::YVar(1)),
+            entry('3', "Y₃", Token::YVar(2)),
+            entry('4', "Y₄", Token::YVar(3)),
+            entry('5', "Y₅", Token::YVar(4)),
+            entry('6', "Y₆", Token::YVar(5)),
+            entry('7', "Y₇", Token::YVar(6)),
+            entry('8', "Y₈", Token::YVar(7)),
+            entry('9', "Y₉", Token::YVar(8)),
+            entry('0', "Y₀", Token::YVar(9)),
+        ],
+    },
+];
+
 impl MenuKind {
     pub fn tabs(self) -> &'static [MenuTab] {
         match self {
             MenuKind::Math => &MATH,
             MenuKind::Test => &TEST,
+            MenuKind::Vars => &VARS,
         }
     }
 }
@@ -211,6 +258,6 @@ mod tests {
             math.token_for_key(key),
             Some(Token::Func(Function::LogBase))
         );
-        assert_eq!(math.token_for_key('9'), None);
+        assert_eq!(math.token_for_key('B'), None);
     }
 }

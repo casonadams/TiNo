@@ -1,5 +1,7 @@
 use crate::{
     expr::{Constant, Expr, Number, Precedence, Statement},
+    field_editor::Field,
+    functions::FUNCTION_COUNT,
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
 };
 
@@ -27,11 +29,14 @@ fn latex(expr: &Expr) -> String {
         Expr::Variable(letter) => letter_tex(letter.symbol()),
         Expr::Ans => "\\mathrm{Ans}".to_owned(),
         Expr::Rand => "\\mathrm{rand}".to_owned(),
+        Expr::Window(field) => name_tex(field.label()),
+        Expr::Table(field) => name_tex(field.label()),
+        Expr::YVar(slot, argument) => y_var_tex(*slot, argument.as_deref()),
         Expr::Negate(operand) => format!("-{}", operand_tex(operand, Precedence::Negation)),
-        Expr::Postfix(op, operand) => postfix_tex(*op, operand),
-        Expr::Binary(op, left, right) => binary_tex(*op, left, right),
+        Expr::Postfix(op, operand, _) => postfix_tex(*op, operand),
+        Expr::Binary(op, left, right, _) => binary_tex(*op, left, right),
         Expr::ImpliedMultiply(left, right) => implied_tex(left, right),
-        Expr::Call(function, arguments) => call_tex(*function, arguments),
+        Expr::Call(function, arguments, _) => call_tex(*function, arguments),
     }
 }
 
@@ -48,6 +53,22 @@ fn letter_tex(symbol: &str) -> String {
         "\\theta".to_owned()
     } else {
         symbol.to_owned()
+    }
+}
+
+/// A system variable's name upright (`Xmin`), `Δ` as the Greek letter.
+fn name_tex(label: &str) -> String {
+    match label.strip_prefix('Δ') {
+        Some(rest) => format!("\\Delta\\mathrm{{{rest}}}"),
+        None => format!("\\mathrm{{{label}}}"),
+    }
+}
+
+fn y_var_tex(slot: usize, argument: Option<&Expr>) -> String {
+    let name = format!("Y_{{{}}}", (slot + 1) % FUNCTION_COUNT);
+    match argument {
+        Some(argument) => format!("{name}\\left({}\\right)", latex(argument)),
+        None => name,
     }
 }
 
@@ -146,25 +167,25 @@ fn sum_operand(right: &Expr, context: Precedence) -> String {
 fn starts_with_digit(expr: &Expr) -> bool {
     match expr {
         Expr::Number(_) => true,
-        Expr::Postfix(_, operand) => starts_with_digit(operand),
-        Expr::Binary(Operator::Power, base, _) => starts_with_digit(base),
+        Expr::Postfix(_, operand, _) => starts_with_digit(operand),
+        Expr::Binary(Operator::Power, base, ..) => starts_with_digit(base),
         _ => false,
     }
 }
 
 fn call_tex(function: Function, arguments: &[Expr]) -> String {
     let all: Vec<String> = arguments.iter().map(latex).collect();
-    let first = all.first().cloned().unwrap_or_default();
-    match function {
-        Function::Sqrt => format!("\\sqrt{{{first}}}"),
-        Function::CubeRoot => format!("\\sqrt[3]{{{first}}}"),
-        Function::TenPower => format!("10^{{{first}}}"),
-        Function::ExpPower => format!("e^{{{first}}}"),
-        Function::Abs => format!("\\left|{first}\\right|"),
-        Function::LogBase => {
-            let base = all.get(1).cloned().unwrap_or_default();
-            format!("\\log_{{{base}}}\\left({first}\\right)")
+    match (function, &all[..]) {
+        (Function::Sqrt, [x]) => format!("\\sqrt{{{x}}}"),
+        (Function::CubeRoot, [x]) => format!("\\sqrt[3]{{{x}}}"),
+        (Function::TenPower, [x]) => format!("10^{{{x}}}"),
+        (Function::ExpPower, [x]) => format!("e^{{{x}}}"),
+        (Function::Abs, [x]) => format!("\\left|{x}\\right|"),
+        (Function::LogBase, [x, base]) => format!("\\log_{{{base}}}\\left({x}\\right)"),
+        (Function::Summation, [body, k, start, end]) => {
+            format!("\\sum_{{{k}={start}}}^{{{end}}}\\left({body}\\right)")
         }
+        (Function::FnInt, [body, x, a, b]) => format!("\\int_{{{a}}}^{{{b}}}{body}\\,d{x}"),
         _ => format!(
             "{}\\left({}\\right)",
             function_name(function),
@@ -173,8 +194,8 @@ fn call_tex(function: Function, arguments: &[Expr]) -> String {
     }
 }
 
-fn function_name(function: Function) -> &'static str {
-    match function {
+fn function_name(function: Function) -> String {
+    let name = match function {
         Function::Sin => "\\sin",
         Function::Cos => "\\cos",
         Function::Tan => "\\tan",
@@ -185,16 +206,13 @@ fn function_name(function: Function) -> &'static str {
         Function::Ln => "\\ln",
         Function::Min => "\\min",
         Function::Max => "\\max",
-        Function::Round => "\\operatorname{round}",
-        Function::IPart => "\\operatorname{iPart}",
-        Function::FPart => "\\operatorname{fPart}",
-        Function::Int => "\\operatorname{int}",
-        Function::Lcm => "\\operatorname{lcm}",
         Function::Gcd => "\\gcd",
-        Function::Remainder => "\\operatorname{remainder}",
-        Function::RandInt => "\\operatorname{randInt}",
-        _ => "\\operatorname{not}",
-    }
+        _ => {
+            let text = function.text().trim_end_matches('(');
+            return format!("\\operatorname{{{text}}}");
+        }
+    };
+    name.to_owned()
 }
 
 #[cfg(test)]

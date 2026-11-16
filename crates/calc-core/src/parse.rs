@@ -84,8 +84,9 @@ impl Parser<'_> {
         let tighter = tighter(level);
         let mut left = self.infix(tighter)?;
         while let Some(op) = self.operator_of(level) {
+            let at = self.pos;
             self.pos += 1;
-            left = Expr::Binary(op, Box::new(left), Box::new(self.infix(tighter)?));
+            left = binary(op, (left, self.infix(tighter)?), at);
         }
         Ok(left)
     }
@@ -102,9 +103,9 @@ impl Parser<'_> {
         loop {
             left = match (self.operator_of(Precedence::Product), self.peek()) {
                 (Some(op), _) => {
+                    let at = self.pos;
                     self.pos += 1;
-                    let right = self.infix(Precedence::Combination)?;
-                    Expr::Binary(op, Box::new(left), Box::new(right))
+                    binary(op, (left, self.infix(Precedence::Combination)?), at)
                 }
                 (None, Some(token)) if starts_implied_factor(token) => {
                     let right = self.infix(Precedence::Combination)?;
@@ -125,8 +126,9 @@ impl Parser<'_> {
     fn power(&mut self) -> Result<Expr, CalcError> {
         let mut base = self.postfix()?;
         while let Some(op) = self.operator_of(Precedence::Power) {
+            let at = self.pos;
             self.pos += 1;
-            base = Expr::Binary(op, Box::new(base), Box::new(self.exponent()?));
+            base = binary(op, (base, self.exponent()?), at);
         }
         Ok(base)
     }
@@ -141,8 +143,8 @@ impl Parser<'_> {
     fn postfix(&mut self) -> Result<Expr, CalcError> {
         let mut operand = self.primary()?;
         while let Some(Token::Postfix(op)) = self.peek() {
+            operand = Expr::Postfix(op, Box::new(operand), self.pos);
             self.pos += 1;
-            operand = Expr::Postfix(op, Box::new(operand));
         }
         Ok(operand)
     }
@@ -154,12 +156,24 @@ impl Parser<'_> {
         if starts_number(token) {
             return self.number();
         }
+        let at = self.pos;
         self.pos += 1;
         match token {
-            Token::Func(function) => Ok(Expr::Call(function, self.arguments()?)),
+            Token::Func(function) => Ok(Expr::Call(function, self.arguments()?, at)),
+            Token::YVar(slot) => self.y_var(slot),
             Token::LeftParen => self.group(),
-            _ => atom(token).ok_or_else(|| CalcError::at(unexpected(token), self.pos - 1)),
+            _ => atom(token).ok_or_else(|| CalcError::at(unexpected(token), at)),
         }
+    }
+
+    /// A Y= function, its token consumed: `Y₁(3)` at 3 when a `(` follows.
+    fn y_var(&mut self, slot: usize) -> Result<Expr, CalcError> {
+        let argument = if self.eat(Token::LeftParen) {
+            Some(Box::new(self.group()?))
+        } else {
+            None
+        };
+        Ok(Expr::YVar(slot, argument))
     }
 
     /// The inside of a parenthesis whose `(` was consumed.
@@ -243,6 +257,10 @@ fn tighter(level: Precedence) -> Precedence {
     }
 }
 
+fn binary(op: Operator, (left, right): (Expr, Expr), at: usize) -> Expr {
+    Expr::Binary(op, Box::new(left), Box::new(right), at)
+}
+
 fn starts_number(token: Token) -> bool {
     matches!(
         token,
@@ -253,7 +271,10 @@ fn starts_number(token: Token) -> bool {
 /// Whether `token` begins a factor that multiplies what precedes it.
 fn starts_implied_factor(token: Token) -> bool {
     starts_number(token)
-        || matches!(token, Token::Negate | Token::Func(_) | Token::LeftParen)
+        || matches!(
+            token,
+            Token::Negate | Token::Func(_) | Token::YVar(_) | Token::LeftParen
+        )
         || atom(token).is_some()
 }
 
@@ -265,6 +286,8 @@ fn atom(token: Token) -> Option<Expr> {
         Token::Letter(letter) => Expr::Variable(letter),
         Token::Ans => Expr::Ans,
         Token::Rand => Expr::Rand,
+        Token::Window(field) => Expr::Window(field),
+        Token::Table(field) => Expr::Table(field),
         _ => return None,
     })
 }
@@ -298,8 +321,10 @@ pub(crate) mod tests {
 
     /// Tokens for a compact spelling: digits, `.`, `+-*/^`, `_` negate,
     /// `()`, `,`, `E` exponent, `p` π, `²`, `³`, `!` inverse, `f` factorial,
-    /// `→` store, `=<>` relations, `&` and, `|` or, `A`-`D` and `X` letters,
-    /// `a` Ans, `s` sin(, `r` √(, `m` max(, `R` round(, `F` ►Frac, `L` L₁.
+    /// `→` store, `=<>` relations, `&` and, `|` or, `A`-`D`, `K` and `X`
+    /// letters, `a` Ans, `s` sin(, `r` √(, `m` max(, `R` round(, `F` ►Frac,
+    /// `L` L₁, `d` nDeriv(, `i` fnInt(, `n` fMin(, `x` fMax(, `S` Σ(, `y` Y₁,
+    /// `z` Y₂, `w` Xmin, `t` ΔTbl.
     pub(crate) fn tokens(spelling: &str) -> Vec<Token> {
         spelling.chars().map(token_for).collect()
     }
@@ -360,14 +385,24 @@ pub(crate) mod tests {
             'B' => Token::Letter(Letter::B),
             'C' => Token::Letter(Letter::C),
             'D' => Token::Letter(Letter::D),
+            'K' => Token::Letter(Letter::K),
             'X' => Token::Letter(Letter::X),
             'a' => Token::Ans,
             's' => Token::Func(Function::Sin),
             'r' => Token::Func(Function::Sqrt),
             'm' => Token::Func(Function::Max),
             'R' => Token::Func(Function::Round),
+            'd' => Token::Func(Function::NDeriv),
+            'i' => Token::Func(Function::FnInt),
+            'n' => Token::Func(Function::FMin),
+            'x' => Token::Func(Function::FMax),
+            'S' => Token::Func(Function::Summation),
             'F' => Token::Display(DisplayAs::Fraction),
             'L' => Token::List(ListName::L1),
+            'y' => Token::YVar(0),
+            'z' => Token::YVar(1),
+            'w' => Token::Window(crate::window_editor::WindowField::XMin),
+            't' => Token::Table(crate::table::TableField::Step),
             _ => return None,
         })
     }
@@ -413,7 +448,7 @@ pub(crate) mod tests {
     #[test]
     fn functions_take_comma_separated_arguments() {
         let statement = parse(&tokens("m1,2+3)")).unwrap();
-        let Expr::Call(Function::Max, arguments) = statement.expr else {
+        let Expr::Call(Function::Max, arguments, _) = statement.expr else {
             panic!("expected a call");
         };
         assert_eq!(arguments.len(), 2);

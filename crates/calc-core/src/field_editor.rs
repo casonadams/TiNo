@@ -1,11 +1,11 @@
 use crate::{
     editor::Editor,
     error::{CalcError, ErrorKind},
-    eval::{Memory, evaluate},
+    eval::Context,
     format::format_real,
     keymap::{Action, Command},
     parse::parse,
-    settings::{Angle, Settings},
+    settings::Settings,
     token::{Digit, Token},
 };
 
@@ -60,9 +60,9 @@ impl<F: Field> FieldCursor<F> {
         None
     }
 
-    /// The entry's value, angles in `angle` units; `None` for an empty
-    /// entry, which keeps the field's value.
-    pub fn value(&self, memory: &Memory, angle: Angle) -> Result<Option<f64>, CalcError> {
+    /// The entry's value in `context`; `None` for an empty entry, which
+    /// keeps the field's value.
+    pub fn value(&self, context: &Context<'_>) -> Result<Option<f64>, CalcError> {
         let tokens = self.editor.tokens();
         if tokens.is_empty() {
             return Ok(None);
@@ -71,7 +71,7 @@ impl<F: Field> FieldCursor<F> {
         if statement.store.is_some() {
             return Err(CalcError::new(ErrorKind::Syntax));
         }
-        evaluate(&statement.expr, memory, angle).map(Some)
+        context.evaluate(&statement.expr).map(Some)
     }
 }
 
@@ -138,13 +138,17 @@ mod tests {
             Token::Op(crate::vocabulary::Operator::Divide),
             Token::Digit(Digit::Two),
         ]);
-        let value = cursor
-            .value(&Memory::default(), Angle::Radian)
-            .unwrap()
-            .unwrap();
+        let context = Context {
+            memory: &crate::eval::Memory::default(),
+            angle: crate::settings::Angle::Radian,
+            window: &crate::window::Window::standard(),
+            table: &crate::table::TableSettings::default(),
+            functions: Vec::new(),
+        };
+        let value = cursor.value(&context).unwrap().unwrap();
         assert!((value - std::f64::consts::FRAC_PI_2).abs() < 1e-15);
         cursor.editor.replace(Vec::new());
-        assert_eq!(cursor.value(&Memory::default(), Angle::Radian), Ok(None));
+        assert_eq!(cursor.value(&context), Ok(None));
     }
 
     #[test]

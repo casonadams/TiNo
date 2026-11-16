@@ -1,9 +1,12 @@
 use crate::{
+    table::TableField,
     token::Letter,
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
+    window_editor::WindowField,
 };
 
-/// A parsed expression.
+/// A parsed expression. Operators and calls keep the position of their
+/// token, where an error evaluating them points.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Number(Number),
@@ -11,12 +14,18 @@ pub enum Expr {
     Variable(Letter),
     Ans,
     Rand,
+    /// A WINDOW setting read as a variable (`Xmin`).
+    Window(WindowField),
+    /// A TBLSET setting read as a variable (`ΔTbl`).
+    Table(TableField),
+    /// A Y= function by slot: at the current `X`, or at its argument (`Y₁(3)`).
+    YVar(usize, Option<Box<Expr>>),
     Negate(Box<Expr>),
-    Postfix(PostfixOp, Box<Expr>),
-    Binary(Operator, Box<Expr>, Box<Expr>),
+    Postfix(PostfixOp, Box<Expr>, usize),
+    Binary(Operator, Box<Expr>, Box<Expr>, usize),
     /// Multiplication written by juxtaposition (`2π`, `3(4)`).
     ImpliedMultiply(Box<Expr>, Box<Expr>),
-    Call(Function, Vec<Expr>),
+    Call(Function, Vec<Expr>, usize),
 }
 
 /// A number literal: its value and how it was typed (`.5`, `2ᴇ⁻3`).

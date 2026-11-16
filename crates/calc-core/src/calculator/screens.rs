@@ -95,7 +95,8 @@ impl Calculator {
     /// Writes the WINDOW field's entry into the window; the error screen
     /// when it does not evaluate.
     pub(super) fn commit_window(&mut self, cursor: &FieldCursor<WindowField>) -> Result<(), View> {
-        match cursor.value(&self.memory, self.settings.angle) {
+        let value = cursor.value(&self.context());
+        match value {
             Ok(Some(value)) => cursor.field.set(&mut self.window, value),
             Ok(None) => {}
             Err(error) => {

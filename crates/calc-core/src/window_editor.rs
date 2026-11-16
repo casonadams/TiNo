@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{field_editor::Field, window::Window};
 
-/// A line of the WINDOW screen.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A line of the WINDOW screen, also read as a variable from VARS.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum WindowField {
     XMin,
     XMax,

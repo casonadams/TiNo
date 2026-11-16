@@ -2,7 +2,7 @@ use super::{Calculator, HOME, View, error_view};
 use crate::{
     error_screen::ErrorOrigin,
     keymap::{Action, Command, Edit},
-    plot::{Context, plot, y_extent},
+    plot::{plot, y_extent},
     trace::TraceCursor,
     window::Window,
     zoom::{self, ZoomContext, ZoomItem},
@@ -66,7 +66,7 @@ impl Calculator {
     pub(super) fn zoom(&mut self, item: ZoomItem) -> View {
         let fit = match item {
             ZoomItem::ZoomFit => match self.functions.parse_graphed() {
-                Ok(functions) => y_extent(&plot(&functions, &self.window, self.context())),
+                Ok(functions) => y_extent(&plot(&functions, &self.context())),
                 Err((slot, error)) => return error_view(error, ErrorOrigin::Function(slot)),
             },
             _ => None,
@@ -77,13 +77,6 @@ impl Calculator {
         };
         self.window = zoom::apply(item, self.window, context);
         self.graph(false)
-    }
-
-    pub(super) fn context(&self) -> Context<'_> {
-        Context {
-            memory: &self.memory,
-            angle: self.settings.angle,
-        }
     }
 
     /// Drags the graph by fractions of its width and height (positive `dx`

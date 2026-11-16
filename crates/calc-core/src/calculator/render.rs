@@ -122,7 +122,7 @@ impl Calculator {
         });
         GraphView {
             window: self.window,
-            plot: plot(&functions, &self.window, context),
+            plot: plot(&functions, &context),
             x_ticks: self.window.x_ticks(),
             y_ticks: self.window.y_ticks(),
             trace,
@@ -170,21 +170,20 @@ fn zoom_menu(menu: ListMenu) -> MenuView {
         items: items.collect(),
         highlighted: menu.highlighted(),
     }
+    .scrolled()
 }
 
 fn typing_menu(cursor: MenuCursor) -> MenuView {
-    let items = cursor
-        .current_tab()
-        .entries
-        .iter()
-        .map(|entry| MenuItemView {
-            key: entry.key,
-            label: entry.label,
-        });
+    let entries = cursor.current_tab().entries.iter();
+    let items = entries.map(|entry| MenuItemView {
+        key: entry.key,
+        label: entry.label,
+    });
     MenuView {
         tabs: cursor.kind.tabs().iter().map(|tab| tab.title).collect(),
         tab: cursor.tab,
         items: items.collect(),
         highlighted: cursor.highlighted,
     }
+    .scrolled()
 }

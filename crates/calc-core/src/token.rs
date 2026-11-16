@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub use crate::vocabulary::{DisplayAs, Function, Operator, PostfixOp};
+use crate::{field_editor::Field, table::TableField, window_editor::WindowField};
 
 /// A named variable: `A` to `Z` and `θ`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -105,7 +106,15 @@ pub enum Token {
     Quote,
     Space,
     Question,
+    /// A WINDOW setting from VARS (`Xmin`).
+    Window(WindowField),
+    /// A TBLSET setting from VARS (`TblStart`).
+    Table(TableField),
+    /// A Y= function from VARS by slot (`Y₁` is slot 0, `Y₀` slot 9).
+    YVar(usize),
 }
+
+const Y_VAR_NAMES: [&str; 10] = ["Y₁", "Y₂", "Y₃", "Y₄", "Y₅", "Y₆", "Y₇", "Y₈", "Y₉", "Y₀"];
 
 impl Token {
     /// How the token reads on screen.
@@ -143,6 +152,9 @@ impl Token {
             Token::Quote => "\"",
             Token::Space => " ",
             Token::Question => "?",
+            Token::Window(field) => field.label(),
+            Token::Table(field) => field.label(),
+            Token::YVar(slot) => Y_VAR_NAMES[slot % Y_VAR_NAMES.len()],
         }
     }
 

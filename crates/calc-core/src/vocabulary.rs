@@ -99,6 +99,15 @@ pub enum Function {
     Remainder,
     RandInt,
     Not,
+    /// `fMin(expression, variable, lower, upper[, tolerance])`.
+    FMin,
+    FMax,
+    /// `nDeriv(expression, variable, value[, ε])`.
+    NDeriv,
+    /// `fnInt(expression, variable, lower, upper[, tolerance])`.
+    FnInt,
+    /// `Σ(expression, variable, start, end)`.
+    Summation,
 }
 
 impl Function {
@@ -129,6 +138,11 @@ impl Function {
             Function::Remainder => "remainder(",
             Function::RandInt => "randInt(",
             Function::Not => "not(",
+            Function::FMin => "fMin(",
+            Function::FMax => "fMax(",
+            Function::NDeriv => "nDeriv(",
+            Function::FnInt => "fnInt(",
+            Function::Summation => "Σ(",
         }
     }
 
@@ -143,8 +157,24 @@ impl Function {
             | Function::Gcd
             | Function::Remainder
             | Function::RandInt => (2, 2),
+            Function::NDeriv => (3, 4),
+            Function::Summation => (4, 4),
+            Function::FMin | Function::FMax | Function::FnInt => (4, 5),
             _ => (1, 1),
         }
+    }
+
+    /// Whether the function's first argument is an expression in the
+    /// variable its second argument names, rather than a value.
+    pub fn binds_variable(self) -> bool {
+        matches!(
+            self,
+            Function::FMin
+                | Function::FMax
+                | Function::NDeriv
+                | Function::FnInt
+                | Function::Summation
+        )
     }
 }
 

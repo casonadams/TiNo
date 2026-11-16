@@ -1,10 +1,4 @@
-use crate::{
-    eval::{Memory, evaluate},
-    expr::Expr,
-    settings::Angle,
-    token::Letter,
-    window::{GRAPH_COLUMNS, Window},
-};
+use crate::{eval::Context, expr::Expr, window::GRAPH_COLUMNS};
 
 /// How far beyond the y range plotted values are kept, in window heights,
 /// so a steep curve still runs off the edge without huge coordinates.
@@ -25,24 +19,9 @@ pub struct Plot {
     pub curves: Vec<Curve>,
 }
 
-/// What evaluating functions of `X` needs besides the expression.
-#[derive(Debug, Clone, Copy)]
-pub struct Context<'a> {
-    pub memory: &'a Memory,
-    pub angle: Angle,
-}
-
-impl Context<'_> {
-    /// `expr` at `X = x`, or `None` where it is undefined.
-    pub fn y_at(self, expr: &Expr, x: f64) -> Option<f64> {
-        let mut memory = self.memory.clone();
-        memory.set(Letter::X, x);
-        evaluate(expr, &memory, self.angle).ok()
-    }
-}
-
-/// Samples `functions` at every `x_res`-th column of `window`.
-pub fn plot(functions: &[(usize, Expr)], window: &Window, context: Context<'_>) -> Plot {
+/// Samples `functions` at every `x_res`-th column of the context's window.
+pub fn plot(functions: &[(usize, Expr)], context: &Context<'_>) -> Plot {
+    let window = context.window;
     let step = window.x_res as usize;
     let xs: Vec<f64> = (0..GRAPH_COLUMNS)
         .step_by(step.max(1))
@@ -80,27 +59,32 @@ pub fn y_extent(plot: &Plot) -> Option<(f64, f64)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parse::{parse, tests::tokens};
+    use crate::{
+        eval::Memory,
+        parse::{parse, tests::tokens},
+        settings::Angle,
+        table::TableSettings,
+        window::Window,
+    };
 
     fn function(spelling: &str) -> Expr {
         parse(&tokens(spelling)).unwrap().expr
     }
 
-    fn context(memory: &Memory) -> Context<'_> {
-        Context {
-            memory,
+    fn plotted(functions: &[(usize, Expr)], window: &Window) -> Plot {
+        let context = Context {
+            memory: &Memory::default(),
             angle: Angle::Radian,
-        }
+            window,
+            table: &TableSettings::default(),
+            functions: Vec::new(),
+        };
+        plot(functions, &context)
     }
 
     #[test]
     fn samples_every_column_from_x_min_to_x_max() {
-        let memory = Memory::default();
-        let plot = plot(
-            &[(0, function("X²"))],
-            &Window::standard(),
-            context(&memory),
-        );
+        let plot = plotted(&[(0, function("X²"))], &Window::standard());
         assert_eq!(plot.xs.len(), GRAPH_COLUMNS);
         assert_eq!((plot.xs[0], plot.xs[GRAPH_COLUMNS - 1]), (-10.0, 10.0));
         assert_eq!(plot.curves[0].ys[0], Some(100.0));
@@ -108,12 +92,7 @@ mod tests {
 
     #[test]
     fn undefined_points_are_gaps() {
-        let memory = Memory::default();
-        let plot = plot(
-            &[(2, function("r(X"))],
-            &Window::standard(),
-            context(&memory),
-        );
+        let plot = plotted(&[(2, function("r(X"))], &Window::standard());
         assert_eq!(plot.curves[0].slot, 2);
         assert_eq!(plot.curves[0].ys[0], None);
         assert_eq!(plot.curves[0].ys[GRAPH_COLUMNS - 1], Some(10f64.sqrt()));
@@ -125,18 +104,15 @@ mod tests {
             x_res: 4.0,
             ..Window::standard()
         };
-        let memory = Memory::default();
-        let plot = plot(&[(0, function("X"))], &window, context(&memory));
+        let plot = plotted(&[(0, function("X"))], &window);
         assert_eq!(plot.xs.len(), GRAPH_COLUMNS.div_ceil(4));
     }
 
     #[test]
     fn extent_spans_every_curve() {
-        let memory = Memory::default();
-        let plot = plot(
+        let plot = plotted(
             &[(0, function("X")), (1, function("X²"))],
             &Window::standard(),
-            context(&memory),
         );
         assert_eq!(y_extent(&plot), Some((-10.0, 100.0)));
     }

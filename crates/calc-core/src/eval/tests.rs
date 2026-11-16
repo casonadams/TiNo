@@ -7,20 +7,32 @@ use crate::{
     vocabulary::{Function, Operator, PostfixOp},
 };
 
-fn value_of(spelling: &str, memory: &Memory) -> Result<f64, CalcError> {
-    evaluate(
-        &parse(&tokens(spelling)).unwrap().expr,
+/// `entry` evaluated with `memory`, a standard window, default TBLSET and
+/// `functions` as Y₁, Y₂, ….
+fn value_in(entry: &[Token], memory: &Memory, functions: &[&str]) -> Result<f64, CalcError> {
+    let context = Context {
         memory,
-        Angle::Radian,
-    )
+        angle: Angle::Radian,
+        window: &Window::standard(),
+        table: &TableSettings::default(),
+        functions: functions
+            .iter()
+            .map(|function| parse(&tokens(function)).map(|statement| statement.expr))
+            .collect(),
+    };
+    context.evaluate(&parse(entry).unwrap().expr)
+}
+
+fn value_with(spelling: &str, functions: &[&str]) -> Result<f64, CalcError> {
+    value_in(&tokens(spelling), &Memory::default(), functions)
+}
+
+fn value_of(spelling: &str, memory: &Memory) -> Result<f64, CalcError> {
+    value_in(&tokens(spelling), memory, &[])
 }
 
 fn value_of_tokens(tokens: &[Token]) -> Result<f64, CalcError> {
-    evaluate(
-        &parse(tokens).unwrap().expr,
-        &Memory::default(),
-        Angle::Radian,
-    )
+    value_in(tokens, &Memory::default(), &[])
 }
 
 fn assert_close(cases: &[(&str, f64)]) {
@@ -186,4 +198,62 @@ fn reports_the_calculators_errors() {
 #[test]
 fn tiny_results_are_zero() {
     assert_eq!(value_of("E_60*E_60", &Memory::default()), Ok(0.0));
+}
+
+#[test]
+fn calculus_functions_evaluate_their_expression_in_the_named_variable() {
+    let close = |spelling: &str, expected: f64| {
+        let value = value_with(spelling, &[]).unwrap();
+        assert!((value - expected).abs() < 1e-9, "{spelling}: {value}");
+    };
+    close("dX³,X,2", 12.000001);
+    close("dX³,X,2,.1", 12.01);
+    close("iX²,X,0,3", 9.0);
+    close("isX),X,0,p", 2.0);
+    close("nX²-2X,X,0,5", 1.0);
+    close("xsX),X,0,p", PI / 2.0);
+    close("SK²,K,1,10", 385.0);
+    close("SSK,K,1,A),A,1,3", 10.0);
+    assert_eq!(
+        value_with("dX,2,3", &[]).map_err(|e| e.kind),
+        Err(ErrorKind::Syntax)
+    );
+    assert_eq!(
+        value_with("iX,X,0,1,0", &[]).map_err(|e| e.kind),
+        Err(ErrorKind::Domain)
+    );
+}
+
+#[test]
+fn y_vars_read_y_equals_at_x_or_their_argument() {
+    let mut memory = Memory::default();
+    memory.set(Letter::X, 2.0);
+    let functions = ["X²", "y+1"];
+    let value = |spelling: &str| value_in(&tokens(spelling), &memory, &functions);
+    assert_eq!(value("y"), Ok(4.0));
+    assert_eq!(value("y(3)"), Ok(9.0));
+    assert_eq!(value("z(_1)"), Ok(2.0));
+}
+
+#[test]
+fn y_vars_that_read_themselves_or_empty_slots_fail() {
+    let kind =
+        |spelling: &str, functions: &[&str]| value_with(spelling, functions).map_err(|e| e.kind);
+    assert_eq!(kind("y", &["y+1"]), Err(ErrorKind::Invalid));
+    assert_eq!(kind("y", &["z", "y"]), Err(ErrorKind::Invalid));
+    assert_eq!(kind("z", &["X"]), Err(ErrorKind::Undefined));
+}
+
+#[test]
+fn window_and_table_settings_read_as_variables() {
+    assert_eq!(value_with("w", &[]), Ok(-10.0));
+    assert_eq!(value_with("2t", &[]), Ok(2.0));
+}
+
+#[test]
+fn evaluation_errors_point_at_the_failing_operation() {
+    let at = |spelling: &str| value_with(spelling, &[]).unwrap_err().position;
+    assert_eq!(at("1+1/0"), Some(3));
+    assert_eq!(at("2+r(_4"), Some(2));
+    assert_eq!(at("(_2)^.5*3"), Some(4));
 }

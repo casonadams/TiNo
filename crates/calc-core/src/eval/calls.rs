@@ -19,6 +19,9 @@ impl Evaluator<'_> {
         if !(least..=most).contains(&arguments.len()) {
             return fail(ErrorKind::Argument);
         }
+        if function.binds_variable() {
+            return self.calculus(function, arguments);
+        }
         let values = arguments
             .iter()
             .map(|argument| self.value(argument))
@@ -31,10 +34,11 @@ impl Evaluator<'_> {
     }
 
     fn unary(&self, function: Function, x: f64) -> Result<f64, CalcError> {
+        let angle = self.context.angle;
         match function {
-            Function::Sin | Function::Cos | Function::Tan => trig::forward(function, x, self.angle),
+            Function::Sin | Function::Cos | Function::Tan => trig::forward(function, x, angle),
             Function::ArcSin | Function::ArcCos | Function::ArcTan => {
-                trig::inverse(function, x, self.angle)
+                trig::inverse(function, x, angle)
             }
             Function::Round => Ok(significant(x)),
             _ => elementary(function, x),
@@ -58,7 +62,7 @@ impl Evaluator<'_> {
             whole(a.min(b), -LARGEST_INTEGER..=LARGEST_INTEGER)?,
             whole(a.max(b), -LARGEST_INTEGER..=LARGEST_INTEGER)?,
         );
-        Ok(low + (self.memory.random() * (high - low + 1.0)).floor())
+        Ok(low + (self.context.memory.random() * (high - low + 1.0)).floor())
     }
 }
 

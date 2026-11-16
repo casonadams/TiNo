@@ -33,8 +33,8 @@ impl TableSettings {
     }
 }
 
-/// A line of the TBLSET screen.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A line of the TBLSET screen, also read as a variable from VARS.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TableField {
     Start,
     Step,

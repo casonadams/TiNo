@@ -21,6 +21,7 @@ pub mod list_menu;
 pub mod menus;
 pub mod mode_screen;
 pub mod modifiers;
+pub mod numeric;
 pub mod parse;
 pub mod plot;
 pub mod screen;
