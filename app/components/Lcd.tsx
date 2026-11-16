@@ -10,7 +10,7 @@ function Cell(props: { cell: () => LcdCell }) {
       </If>
       <View
         class={props.cell().cursor === "block" ? "bg-lcd-cursor rounded-sm" : "bg-lcd"}
-        style={{ minWidth: 12, height: 26, justifyContent: "center" }}
+        style={{ minWidth: props.cell().text === "" ? 12 : 0, height: 26, justifyContent: "center" }}
       >
         <Text
           class={props.cell().cursor === "block" ? "text-lcd" : "text-lcd-foreground"}
