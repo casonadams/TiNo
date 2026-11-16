@@ -48,10 +48,10 @@ jobs:
       - name: Package the web app
         working-directory: app
         run: nsh package --target web --out "$GITHUB_WORKSPACE/dist"
-      - run: touch dist/.nojekyll
+      - run: touch dist/TiNo/.nojekyll
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: dist
+          path: dist/TiNo
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
