@@ -23,6 +23,7 @@ use crate::{
     key::Key,
     keymap::{self, Action, Command},
     list_menu::ListMenu,
+    menus::{MenuCursor, MenuKind},
     mode_screen::ModeCursor,
     modifiers::Modifiers,
     settings::Settings,
@@ -49,6 +50,15 @@ enum View {
     Zoom(ListMenu),
     TableSetup(FieldCursor<TableField>),
     Table(TableCursor),
+    /// A menu that types into the screen under it.
+    Menu(OpenMenu),
+}
+
+/// An open typing menu and the screen it types into.
+#[derive(Debug, Clone)]
+struct OpenMenu {
+    cursor: MenuCursor,
+    under: Box<View>,
 }
 
 const HOME: View = View::Home(None);
@@ -122,14 +132,18 @@ impl Calculator {
 
     fn perform(&mut self, action: Action) {
         let view = std::mem::take(&mut self.view);
-        let destination = match (&view, action) {
-            (View::Error(_), _) => None,
-            (_, Action::Command(command)) => Destination::of(command),
-            _ => None,
+        let (destination, menu) = match (&view, action) {
+            (View::Error(_), _) => (None, None),
+            (_, Action::Command(command)) => (Destination::of(command), menu_of(command)),
+            _ => (None, None),
         };
-        self.view = match destination {
-            Some(destination) => self.leave(view).unwrap_or_else(|| self.open(destination)),
-            None => self.perform_in(view, action),
+        self.view = match (destination, menu) {
+            (Some(destination), _) => self.leave(view).unwrap_or_else(|| self.open(destination)),
+            (None, Some(kind)) => View::Menu(OpenMenu {
+                cursor: MenuCursor::new(kind),
+                under: Box::new(menu_base(view)),
+            }),
+            (None, None) => self.perform_in(view, action),
         };
     }
 
@@ -144,6 +158,7 @@ impl Calculator {
             View::Table(cursor) => self.perform_table(cursor, action),
             View::Graph(trace) => self.perform_graph(trace, action),
             View::Zoom(menu) => self.perform_zoom(menu, action),
+            View::Menu(menu) => self.perform_menu(menu, action),
         }
     }
 
@@ -153,6 +168,7 @@ impl Calculator {
         match view {
             View::Window(cursor) => self.commit_window(&cursor).err(),
             View::TableSetup(cursor) => self.commit_table_setup(&cursor).err(),
+            View::Menu(menu) => self.leave(*menu.under),
             _ => None,
         }
     }
@@ -176,4 +192,23 @@ impl Calculator {
 
 fn error_view(error: CalcError, origin: ErrorOrigin) -> View {
     View::Error(ErrorMenu::new(error, origin))
+}
+
+fn menu_of(command: Command) -> Option<MenuKind> {
+    match command {
+        Command::Math => Some(MenuKind::Math),
+        Command::Test => Some(MenuKind::Test),
+        _ => None,
+    }
+}
+
+/// The screen a menu types into: the one shown when it has an entry
+/// being typed, else the home screen.
+fn menu_base(view: View) -> View {
+    match view {
+        View::Home(_) | View::Window(_) | View::TableSetup(_) => view,
+        View::Functions(cursor) if !cursor.on_selector => view,
+        View::Menu(menu) => *menu.under,
+        _ => HOME,
+    }
 }

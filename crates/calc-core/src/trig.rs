@@ -1,8 +1,8 @@
 use crate::{
     error::{CalcError, ErrorKind},
     eval::fail,
-    expr::Function,
     settings::Angle,
+    vocabulary::Function,
 };
 
 /// `sin`, `cos` or `tan` of `x` in `angle` units. In degrees, multiples of

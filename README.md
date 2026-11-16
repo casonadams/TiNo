@@ -12,6 +12,9 @@ Texas Instruments.
 - **Home screen**: TI-style token entry (`sin(` is one token), 2nd and ALPHA (2nd ALPHA locks), overwrite and insert
   editing, the calculator's precedence (implied multiplication, `⁻2²` is ⁻4, `^` groups left to right), Ans, `→`
   into A–Z and θ, ENTER to repeat, 2nd ENTRY to recall, typeset entries with Float/Fix/Sci/Eng results.
+- **MATH and 2nd TEST menus**: ►Frac, ►Dec, ³, ³√(, ˣ√, logBASE(; abs(, round(, iPart(, fPart(, int(, min(,
+  max(, lcm(, gcd(, remainder(; rand, nPr, nCr, !, randInt(; = ≠ > ≥ < ≤; and, or, xor, not(. ◀ ▶ switch tabs, ▲ ▼
+  and ENTER or an item's key pick; they type into the home screen, Y= or a WINDOW/TBLSET field.
 - **MODE**: Normal, Sci, Eng; Float or Fix 0–9; Radian or Degree.
 - **Errors**: an error screen with Quit and Goto (back to the fault).
 - **Graphing**: ten Y= functions, WINDOW, ZOOM (Zoom In/Out, ZDecimal, ZSquare, ZStandard, ZTrig, ZoomFit), TRACE;
@@ -21,7 +24,7 @@ Texas Instruments.
   browser's local storage.
 - **Skins**: Color and Classic, switched at the top of the page.
 
-Not yet: lists, statistics, matrices, complex numbers, programs, the CALC menu, and the MATH, TEST and VARS menus.
+Not yet: lists, statistics, matrices, complex numbers, programs, the CALC menu, and the VARS menu.
 Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.
 
 ### Computer keyboard

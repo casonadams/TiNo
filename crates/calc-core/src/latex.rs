@@ -1,13 +1,22 @@
-use crate::expr::{BinaryOp, Constant, Expr, Function, Number, Postfix, Precedence, Statement};
+use crate::{
+    expr::{Constant, Expr, Number, Precedence, Statement},
+    vocabulary::{DisplayAs, Function, Operator, PostfixOp},
+};
 
 /// The entry as TeX, for typesetting in history: fractions for `÷`, raised
 /// exponents, radicals, and parentheses only where the meaning needs them.
 pub fn statement(statement: &Statement) -> String {
-    let expr = latex(&statement.expr);
-    match statement.store {
-        Some(letter) => format!("{expr}\\to {}", letter_tex(letter.symbol())),
-        None => expr,
+    let mut tex = latex(&statement.expr);
+    if let Some(display) = statement.display {
+        tex.push_str(match display {
+            DisplayAs::Fraction => "\\blacktriangleright\\mathrm{Frac}",
+            DisplayAs::Decimal => "\\blacktriangleright\\mathrm{Dec}",
+        });
     }
+    if let Some(letter) = statement.store {
+        tex.push_str(&format!("\\to {}", letter_tex(letter.symbol())));
+    }
+    tex
 }
 
 fn latex(expr: &Expr) -> String {
@@ -17,10 +26,12 @@ fn latex(expr: &Expr) -> String {
         Expr::Constant(Constant::E) => "e".to_owned(),
         Expr::Variable(letter) => letter_tex(letter.symbol()),
         Expr::Ans => "\\mathrm{Ans}".to_owned(),
+        Expr::Rand => "\\mathrm{rand}".to_owned(),
         Expr::Negate(operand) => format!("-{}", operand_tex(operand, Precedence::Negation)),
         Expr::Postfix(op, operand) => postfix_tex(*op, operand),
         Expr::Binary(op, left, right) => binary_tex(*op, left, right),
-        Expr::Function(function, argument) => function_tex(*function, &latex(argument)),
+        Expr::ImpliedMultiply(left, right) => implied_tex(left, right),
+        Expr::Call(function, arguments) => call_tex(*function, arguments),
     }
 }
 
@@ -50,34 +61,67 @@ fn operand_tex(expr: &Expr, context: Precedence) -> String {
     }
 }
 
-fn postfix_tex(op: Postfix, operand: &Expr) -> String {
+fn postfix_tex(op: PostfixOp, operand: &Expr) -> String {
     let base = operand_tex(operand, Precedence::Atom);
     match op {
-        Postfix::Square => format!("{{{base}}}^{{2}}"),
-        Postfix::Inverse => format!("{{{base}}}^{{-1}}"),
+        PostfixOp::Square => format!("{{{base}}}^{{2}}"),
+        PostfixOp::Cube => format!("{{{base}}}^{{3}}"),
+        PostfixOp::Inverse => format!("{{{base}}}^{{-1}}"),
+        PostfixOp::Factorial => format!("{base}!"),
     }
 }
 
-fn binary_tex(op: BinaryOp, left: &Expr, right: &Expr) -> String {
+fn binary_tex(op: Operator, left: &Expr, right: &Expr) -> String {
     match op {
-        BinaryOp::Add => format!("{}+{}", latex(left), sum_operand(right, Precedence::Sum)),
-        BinaryOp::Subtract => format!(
+        Operator::Add => format!("{}+{}", latex(left), sum_operand(right, Precedence::Sum)),
+        Operator::Subtract => format!(
             "{}-{}",
             latex(left),
             sum_operand(right, Precedence::Product)
         ),
-        BinaryOp::Multiply => product_tex(left, right, "\\times "),
-        BinaryOp::ImpliedMultiply if starts_with_digit(right) => {
-            product_tex(left, right, "\\cdot ")
-        }
-        BinaryOp::ImpliedMultiply => product_tex(left, right, ""),
-        BinaryOp::Divide => format!("\\frac{{{}}}{{{}}}", latex(left), latex(right)),
-        BinaryOp::Power => format!(
+        Operator::Multiply => product_tex(left, right, "\\times "),
+        Operator::Divide => format!("\\frac{{{}}}{{{}}}", latex(left), latex(right)),
+        Operator::Power => format!(
             "{{{}}}^{{{}}}",
             operand_tex(left, Precedence::Postfix),
             latex(right)
         ),
+        Operator::XRoot => format!("\\sqrt[{}]{{{}}}", latex(left), latex(right)),
+        _ => infix_tex(op, left, right),
     }
+}
+
+/// Counting, relations and logic: the operator between its operands, the
+/// right one parenthesized unless it binds tighter.
+fn infix_tex(op: Operator, left: &Expr, right: &Expr) -> String {
+    let symbol = match op {
+        Operator::Permutations => "\\,\\mathrm{nPr}\\,",
+        Operator::Combinations => "\\,\\mathrm{nCr}\\,",
+        Operator::Equal => "=",
+        Operator::NotEqual => "\\ne ",
+        Operator::Greater => ">",
+        Operator::GreaterEqual => "\\ge ",
+        Operator::Less => "<",
+        Operator::LessEqual => "\\le ",
+        Operator::And => "\\;\\mathrm{and}\\;",
+        Operator::Or => "\\;\\mathrm{or}\\;",
+        _ => "\\;\\mathrm{xor}\\;",
+    };
+    let level = op.precedence();
+    let right_tex = match right.precedence() {
+        tighter if tighter > level => latex(right),
+        _ => format!("\\left({}\\right)", latex(right)),
+    };
+    format!("{}{symbol}{right_tex}", operand_tex(left, level))
+}
+
+fn implied_tex(left: &Expr, right: &Expr) -> String {
+    let sign = if starts_with_digit(right) {
+        "\\cdot "
+    } else {
+        ""
+    };
+    product_tex(left, right, sign)
 }
 
 fn product_tex(left: &Expr, right: &Expr, sign: &str) -> String {
@@ -103,16 +147,34 @@ fn starts_with_digit(expr: &Expr) -> bool {
     match expr {
         Expr::Number(_) => true,
         Expr::Postfix(_, operand) => starts_with_digit(operand),
-        Expr::Binary(BinaryOp::Power, base, _) => starts_with_digit(base),
+        Expr::Binary(Operator::Power, base, _) => starts_with_digit(base),
         _ => false,
     }
 }
 
-fn function_tex(function: Function, argument: &str) -> String {
-    let name = match function {
-        Function::Sqrt => return format!("\\sqrt{{{argument}}}"),
-        Function::TenPower => return format!("10^{{{argument}}}"),
-        Function::ExpPower => return format!("e^{{{argument}}}"),
+fn call_tex(function: Function, arguments: &[Expr]) -> String {
+    let all: Vec<String> = arguments.iter().map(latex).collect();
+    let first = all.first().cloned().unwrap_or_default();
+    match function {
+        Function::Sqrt => format!("\\sqrt{{{first}}}"),
+        Function::CubeRoot => format!("\\sqrt[3]{{{first}}}"),
+        Function::TenPower => format!("10^{{{first}}}"),
+        Function::ExpPower => format!("e^{{{first}}}"),
+        Function::Abs => format!("\\left|{first}\\right|"),
+        Function::LogBase => {
+            let base = all.get(1).cloned().unwrap_or_default();
+            format!("\\log_{{{base}}}\\left({first}\\right)")
+        }
+        _ => format!(
+            "{}\\left({}\\right)",
+            function_name(function),
+            all.join(", ")
+        ),
+    }
+}
+
+fn function_name(function: Function) -> &'static str {
+    match function {
         Function::Sin => "\\sin",
         Function::Cos => "\\cos",
         Function::Tan => "\\tan",
@@ -121,8 +183,18 @@ fn function_tex(function: Function, argument: &str) -> String {
         Function::ArcTan => "\\tan^{-1}",
         Function::Log => "\\log",
         Function::Ln => "\\ln",
-    };
-    format!("{name}\\left({argument}\\right)")
+        Function::Min => "\\min",
+        Function::Max => "\\max",
+        Function::Round => "\\operatorname{round}",
+        Function::IPart => "\\operatorname{iPart}",
+        Function::FPart => "\\operatorname{fPart}",
+        Function::Int => "\\operatorname{int}",
+        Function::Lcm => "\\operatorname{lcm}",
+        Function::Gcd => "\\gcd",
+        Function::Remainder => "\\operatorname{remainder}",
+        Function::RandInt => "\\operatorname{randInt}",
+        _ => "\\operatorname{not}",
+    }
 }
 
 #[cfg(test)]
@@ -147,8 +219,13 @@ mod tests {
             ("s(p/2", "\\sin\\left(\\frac{\\pi}{2}\\right)"),
             ("2-(3-4", "2-\\left(3-4\\right)"),
             ("1.5E_2", "1.5\\times10^{-2}"),
-            ("5>A", "5\\to A"),
+            ("5→A", "5\\to A"),
             ("2a", "2\\mathrm{Ans}"),
+            ("1+1=2", "1+1=2"),
+            ("1<2&2<3", "1<2\\;\\mathrm{and}\\;2<3"),
+            ("m1,2", "\\max\\left(1, 2\\right)"),
+            ("4f", "4!"),
+            ("aF", "\\mathrm{Ans}\\blacktriangleright\\mathrm{Frac}"),
         ];
         for (spelling, tex) in cases {
             assert_eq!(

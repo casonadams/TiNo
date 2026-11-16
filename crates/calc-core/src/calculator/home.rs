@@ -3,12 +3,13 @@ use crate::{
     error::CalcError,
     error_screen::ErrorOrigin,
     eval::evaluate,
-    format::format_real,
+    format::{format_fraction, format_real},
     home::Output,
     keymap::{Action, Command, Edit},
     latex,
     parse::parse,
     token::Token,
+    vocabulary::DisplayAs,
 };
 
 impl Calculator {
@@ -58,9 +59,13 @@ impl Calculator {
             self.memory.set(letter, value);
         }
         self.memory.set_ans(value);
+        let result = match statement.display {
+            Some(DisplayAs::Fraction) => format_fraction(value, self.settings),
+            _ => format_real(value, self.settings),
+        };
         Ok(Output {
             latex: latex::statement(&statement),
-            result: format_real(value, self.settings),
+            result,
         })
     }
 

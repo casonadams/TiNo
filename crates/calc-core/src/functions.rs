@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn storing_is_a_syntax_error_in_a_function() {
-        let functions = functions(&[(0, "5>A", true)]);
+        let functions = functions(&[(0, "5→A", true)]);
         let (_, error) = functions.parse_graphed().unwrap_err();
         assert_eq!((error.kind, error.position), (ErrorKind::Syntax, Some(1)));
     }

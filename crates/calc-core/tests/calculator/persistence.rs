@@ -89,7 +89,7 @@ fn unreadable_snapshots_are_errors() {
     let cases = [
         ("not json".to_owned(), "malformed"),
         (
-            saved.replacen("\"version\":1", "\"version\":2", 1),
+            saved.replacen("\"version\":2", "\"version\":1", 1),
             "version",
         ),
         (saved.replacen("\"Fix\":2", "\"Fix\":12", 1), "malformed"),

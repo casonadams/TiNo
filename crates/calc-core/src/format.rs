@@ -15,6 +15,46 @@ pub fn format_real(value: f64, settings: Settings) -> String {
     }
 }
 
+/// Denominators `►Frac` tries, up to this one.
+const LARGEST_DENOMINATOR: f64 = 9999.0;
+
+/// `►Frac`: the value as a fraction `n/d` (`⁻1/3`) when one with a
+/// denominator up to 9999 matches it to the digits shown; otherwise as
+/// `format_real` writes it.
+pub fn format_fraction(value: f64, settings: Settings) -> String {
+    match fraction(value.abs()) {
+        Some((numerator, denominator)) if denominator > 1.0 => {
+            let sign = if value < 0.0 { "⁻" } else { "" };
+            format!("{sign}{numerator}/{denominator}")
+        }
+        _ => format_real(value, settings),
+    }
+}
+
+/// The simplest fraction matching `x` to 10 significant digits, from its
+/// continued fraction.
+fn fraction(x: f64) -> Option<(f64, f64)> {
+    let tolerance = 5e-11 * x.max(1.0);
+    let (mut previous, mut current) = ((0.0, 1.0), (1.0, 0.0));
+    let mut rest = x;
+    for _ in 0..32 {
+        let whole = rest.floor();
+        let next = (
+            whole * current.0 + previous.0,
+            whole * current.1 + previous.1,
+        );
+        if next.1 > LARGEST_DENOMINATOR {
+            return None;
+        }
+        if (next.0 / next.1 - x).abs() <= tolerance {
+            return Some(next);
+        }
+        (previous, current) = (current, next);
+        rest = 1.0 / (rest - whole);
+    }
+    None
+}
+
 fn magnitude(abs: f64, settings: Settings) -> String {
     if abs == 0.0 {
         return zero(settings.decimals);
@@ -194,6 +234,22 @@ mod tests {
         ];
         for (settings, value, text) in cases {
             assert_eq!(format_real(value, settings), text, "{settings:?} {value}");
+        }
+    }
+
+    #[test]
+    fn frac_writes_simple_fractions_and_leaves_others_decimal() {
+        let cases = [
+            (1.0 / 3.0, "1/3"),
+            (-0.75, "⁻3/4"),
+            (2.5, "5/2"),
+            (4.0, "4"),
+            (PI, "3.141592654"),
+            (1.0 / 9999.0, "1/9999"),
+            (1.0 / 10007.0, "9.993004897ᴇ⁻5"),
+        ];
+        for (value, text) in cases {
+            assert_eq!(format_fraction(value, Settings::default()), text, "{value}");
         }
     }
 }

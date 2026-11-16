@@ -1,18 +1,25 @@
 use crate::{
     error::{CalcError, ErrorKind},
-    expr::{BinaryOp, Constant, Expr, Function, Number, Postfix, Statement},
-    token::Token,
+    expr::{Constant, Expr, Number, Precedence, Statement},
+    token::{Letter, Token},
+    vocabulary::{DisplayAs, Operator},
 };
 
 /// Parses an entry with the calculator's rules: `^` groups left to right,
 /// negation binds looser than `^` (`⁻2²` is `⁻4`), juxtaposition multiplies
-/// as `×` does, and parentheses left open close at the end of the entry.
+/// as `×` does, functions take comma-separated arguments, and parentheses
+/// left open close at the end of the entry.
 pub fn parse(tokens: &[Token]) -> Result<Statement, CalcError> {
     let mut parser = Parser { tokens, pos: 0 };
-    let expr = parser.sum()?;
+    let expr = parser.expression()?;
+    let display = parser.display();
     let store = parser.store_target()?;
     match parser.peek() {
-        None => Ok(Statement { expr, store }),
+        None => Ok(Statement {
+            expr,
+            display,
+            store,
+        }),
         Some(_) => Err(parser.error(ErrorKind::Syntax)),
     }
 }
@@ -43,7 +50,15 @@ impl Parser<'_> {
         CalcError::at(kind, self.pos)
     }
 
-    fn store_target(&mut self) -> Result<Option<crate::token::Letter>, CalcError> {
+    fn display(&mut self) -> Option<DisplayAs> {
+        let Some(Token::Display(display)) = self.peek() else {
+            return None;
+        };
+        self.pos += 1;
+        Some(display)
+    }
+
+    fn store_target(&mut self) -> Result<Option<Letter>, CalcError> {
         if !self.eat(Token::Store) {
             return Ok(None);
         }
@@ -54,30 +69,49 @@ impl Parser<'_> {
         }
     }
 
-    fn sum(&mut self) -> Result<Expr, CalcError> {
-        let mut left = self.product()?;
-        loop {
-            let op = match self.peek() {
-                Some(Token::Add) => BinaryOp::Add,
-                Some(Token::Subtract) => BinaryOp::Subtract,
-                _ => return Ok(left),
-            };
+    fn expression(&mut self) -> Result<Expr, CalcError> {
+        self.infix(Precedence::Either)
+    }
+
+    /// The operators of `level`, grouping left to right, between operands
+    /// of the next tighter level.
+    fn infix(&mut self, level: Precedence) -> Result<Expr, CalcError> {
+        match level {
+            Precedence::Product => return self.product(),
+            Precedence::Negation => return self.signed(),
+            _ => {}
+        }
+        let tighter = tighter(level);
+        let mut left = self.infix(tighter)?;
+        while let Some(op) = self.operator_of(level) {
             self.pos += 1;
-            left = Expr::Binary(op, Box::new(left), Box::new(self.product()?));
+            left = Expr::Binary(op, Box::new(left), Box::new(self.infix(tighter)?));
+        }
+        Ok(left)
+    }
+
+    fn operator_of(&self, level: Precedence) -> Option<Operator> {
+        match self.peek() {
+            Some(Token::Op(op)) if op.precedence() == level => Some(op),
+            _ => None,
         }
     }
 
     fn product(&mut self) -> Result<Expr, CalcError> {
-        let mut left = self.signed()?;
+        let mut left = self.infix(Precedence::Combination)?;
         loop {
-            let op = match self.peek() {
-                Some(Token::Multiply) => BinaryOp::Multiply,
-                Some(Token::Divide) => BinaryOp::Divide,
-                Some(token) if starts_implied_factor(token) => BinaryOp::ImpliedMultiply,
+            left = match (self.operator_of(Precedence::Product), self.peek()) {
+                (Some(op), _) => {
+                    self.pos += 1;
+                    let right = self.infix(Precedence::Combination)?;
+                    Expr::Binary(op, Box::new(left), Box::new(right))
+                }
+                (None, Some(token)) if starts_implied_factor(token) => {
+                    let right = self.infix(Precedence::Combination)?;
+                    Expr::ImpliedMultiply(Box::new(left), Box::new(right))
+                }
                 _ => return Ok(left),
             };
-            self.pos += usize::from(op != BinaryOp::ImpliedMultiply);
-            left = Expr::Binary(op, Box::new(left), Box::new(self.signed()?));
         }
     }
 
@@ -90,8 +124,9 @@ impl Parser<'_> {
 
     fn power(&mut self) -> Result<Expr, CalcError> {
         let mut base = self.postfix()?;
-        while self.eat(Token::Power) {
-            base = Expr::Binary(BinaryOp::Power, Box::new(base), Box::new(self.exponent()?));
+        while let Some(op) = self.operator_of(Precedence::Power) {
+            self.pos += 1;
+            base = Expr::Binary(op, Box::new(base), Box::new(self.exponent()?));
         }
         Ok(base)
     }
@@ -105,15 +140,11 @@ impl Parser<'_> {
 
     fn postfix(&mut self) -> Result<Expr, CalcError> {
         let mut operand = self.primary()?;
-        loop {
-            let op = match self.peek() {
-                Some(Token::Square) => Postfix::Square,
-                Some(Token::Inverse) => Postfix::Inverse,
-                _ => return Ok(operand),
-            };
+        while let Some(Token::Postfix(op)) = self.peek() {
             self.pos += 1;
             operand = Expr::Postfix(op, Box::new(operand));
         }
+        Ok(operand)
     }
 
     fn primary(&mut self) -> Result<Expr, CalcError> {
@@ -123,28 +154,39 @@ impl Parser<'_> {
         if starts_number(token) {
             return self.number();
         }
-        if let Some(function) = function(token) {
-            self.pos += 1;
-            return Ok(Expr::Function(function, Box::new(self.group()?)));
-        }
-        let expr = atom(token).ok_or_else(|| self.error(unexpected(token)))?;
         self.pos += 1;
-        match expr {
-            Some(expr) => Ok(expr),
-            None => self.group(),
+        match token {
+            Token::Func(function) => Ok(Expr::Call(function, self.arguments()?)),
+            Token::LeftParen => self.group(),
+            _ => atom(token).ok_or_else(|| CalcError::at(unexpected(token), self.pos - 1)),
         }
     }
 
-    /// The inside of a parenthesis whose `(` was consumed; its `)` may be
-    /// left out at the end of the entry or before `→`.
+    /// The inside of a parenthesis whose `(` was consumed.
     fn group(&mut self) -> Result<Expr, CalcError> {
-        let inner = self.sum()?;
+        let inner = self.expression()?;
+        self.close()?;
+        Ok(inner)
+    }
+
+    /// A function's comma-separated arguments, its `(` consumed.
+    fn arguments(&mut self) -> Result<Vec<Expr>, CalcError> {
+        let mut arguments = vec![self.expression()?];
+        while self.eat(Token::Comma) {
+            arguments.push(self.expression()?);
+        }
+        self.close()?;
+        Ok(arguments)
+    }
+
+    /// A `)`, which may be left out at the end of the entry or before `►` or `→`.
+    fn close(&mut self) -> Result<(), CalcError> {
         match self.peek() {
             Some(Token::RightParen) => self.pos += 1,
-            None | Some(Token::Store) => {}
+            None | Some(Token::Store | Token::Display(_)) => {}
             Some(_) => return Err(self.error(ErrorKind::Syntax)),
         }
-        Ok(inner)
+        Ok(())
     }
 
     fn number(&mut self) -> Result<Expr, CalcError> {
@@ -179,24 +221,25 @@ impl Parser<'_> {
         Ok(Some(format!("{sign}{digits}")))
     }
 
+    /// The text of the tokens `accept` takes, from here on.
     fn collect(&mut self, accept: impl Fn(Token) -> bool) -> String {
         let mut text = String::new();
         while let Some(token) = self.peek().filter(|&t| accept(t)) {
-            text.push(if token == Token::DecimalPoint {
-                '.'
-            } else {
-                digit_char(token)
-            });
+            text.push_str(token.text());
             self.pos += 1;
         }
         text
     }
 }
 
-fn digit_char(token: Token) -> char {
-    match token {
-        Token::Digit(digit) => char::from(b'0' + digit as u8),
-        _ => '?',
+/// The next tighter level of infix operators below `level`.
+fn tighter(level: Precedence) -> Precedence {
+    match level {
+        Precedence::Either => Precedence::Both,
+        Precedence::Both => Precedence::Relation,
+        Precedence::Relation => Precedence::Sum,
+        Precedence::Sum => Precedence::Product,
+        _ => Precedence::Negation,
     }
 }
 
@@ -210,36 +253,18 @@ fn starts_number(token: Token) -> bool {
 /// Whether `token` begins a factor that multiplies what precedes it.
 fn starts_implied_factor(token: Token) -> bool {
     starts_number(token)
-        || token == Token::Negate
-        || function(token).is_some()
+        || matches!(token, Token::Negate | Token::Func(_) | Token::LeftParen)
         || atom(token).is_some()
 }
 
-fn function(token: Token) -> Option<Function> {
+/// A one-token operand.
+fn atom(token: Token) -> Option<Expr> {
     Some(match token {
-        Token::Sqrt => Function::Sqrt,
-        Token::Sin => Function::Sin,
-        Token::Cos => Function::Cos,
-        Token::Tan => Function::Tan,
-        Token::ArcSin => Function::ArcSin,
-        Token::ArcCos => Function::ArcCos,
-        Token::ArcTan => Function::ArcTan,
-        Token::Log => Function::Log,
-        Token::Ln => Function::Ln,
-        Token::TenPower => Function::TenPower,
-        Token::ExpPower => Function::ExpPower,
-        _ => return None,
-    })
-}
-
-/// A one-token operand, or `Some(None)` for `(`, which opens a group.
-fn atom(token: Token) -> Option<Option<Expr>> {
-    Some(match token {
-        Token::Pi => Some(Expr::Constant(Constant::Pi)),
-        Token::EulerE => Some(Expr::Constant(Constant::E)),
-        Token::Letter(letter) => Some(Expr::Variable(letter)),
-        Token::Ans => Some(Expr::Ans),
-        Token::LeftParen => None,
+        Token::Pi => Expr::Constant(Constant::Pi),
+        Token::EulerE => Expr::Constant(Constant::E),
+        Token::Letter(letter) => Expr::Variable(letter),
+        Token::Ans => Expr::Ans,
+        Token::Rand => Expr::Rand,
         _ => return None,
     })
 }
@@ -266,11 +291,15 @@ fn unexpected(token: Token) -> ErrorKind {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::token::{Digit, Letter};
+    use crate::{
+        token::{Digit, ListName},
+        vocabulary::{Function, PostfixOp},
+    };
 
     /// Tokens for a compact spelling: digits, `.`, `+-*/^`, `_` negate,
-    /// `()`, `E` exponent, `p` π, `²`, `!` inverse, `>` store, `A`-`D` and
-    /// `X` letters, `a` Ans, `s` sin(, `r` √(.
+    /// `()`, `,`, `E` exponent, `p` π, `²`, `³`, `!` inverse, `f` factorial,
+    /// `→` store, `=<>` relations, `&` and, `|` or, `A`-`D` and `X` letters,
+    /// `a` Ans, `s` sin(, `r` √(, `m` max(, `R` round(, `F` ►Frac, `L` L₁.
     pub(crate) fn tokens(spelling: &str) -> Vec<Token> {
         spelling.chars().map(token_for).collect()
     }
@@ -291,36 +320,56 @@ pub(crate) mod tests {
         if let Some(d) = c.to_digit(10) {
             return Token::Digit(DIGITS[d as usize]);
         }
-        symbol_token(c)
+        operator_token(c)
+            .or_else(|| symbol_token(c))
+            .unwrap_or_else(|| panic!("no token spelled {c:?}"))
     }
 
-    fn symbol_token(c: char) -> Token {
-        match c {
+    fn operator_token(c: char) -> Option<Token> {
+        let op = match c {
+            '+' => Operator::Add,
+            '-' => Operator::Subtract,
+            '*' => Operator::Multiply,
+            '/' => Operator::Divide,
+            '^' => Operator::Power,
+            '=' => Operator::Equal,
+            '<' => Operator::Less,
+            '>' => Operator::Greater,
+            '&' => Operator::And,
+            '|' => Operator::Or,
+            _ => return None,
+        };
+        Some(Token::Op(op))
+    }
+
+    fn symbol_token(c: char) -> Option<Token> {
+        Some(match c {
             '.' => Token::DecimalPoint,
-            '+' => Token::Add,
-            '-' => Token::Subtract,
-            '*' => Token::Multiply,
-            '/' => Token::Divide,
-            '^' => Token::Power,
             '_' => Token::Negate,
             '(' => Token::LeftParen,
             ')' => Token::RightParen,
+            ',' => Token::Comma,
             'E' => Token::Exponent,
             'p' => Token::Pi,
-            '²' => Token::Square,
-            '!' => Token::Inverse,
-            '>' => Token::Store,
+            '²' => Token::Postfix(PostfixOp::Square),
+            '³' => Token::Postfix(PostfixOp::Cube),
+            '!' => Token::Postfix(PostfixOp::Inverse),
+            'f' => Token::Postfix(PostfixOp::Factorial),
+            '→' => Token::Store,
             'A' => Token::Letter(Letter::A),
             'B' => Token::Letter(Letter::B),
             'C' => Token::Letter(Letter::C),
             'D' => Token::Letter(Letter::D),
             'X' => Token::Letter(Letter::X),
             'a' => Token::Ans,
-            's' => Token::Sin,
-            'r' => Token::Sqrt,
-            'L' => Token::List(crate::token::ListName::L1),
-            other => panic!("no token spelled {other:?}"),
-        }
+            's' => Token::Func(Function::Sin),
+            'r' => Token::Func(Function::Sqrt),
+            'm' => Token::Func(Function::Max),
+            'R' => Token::Func(Function::Round),
+            'F' => Token::Display(DisplayAs::Fraction),
+            'L' => Token::List(ListName::L1),
+            _ => return None,
+        })
     }
 
     fn error_of(spelling: &str) -> CalcError {
@@ -335,8 +384,10 @@ pub(crate) mod tests {
             ("1.2.3", 0),
             ("2E", 2),
             ("3)", 1),
-            ("4>", 2),
-            ("4>5", 2),
+            ("4→", 2),
+            ("4→5", 2),
+            ("m1,", 3),
+            ("2F3", 2),
         ];
         for (spelling, position) in cases {
             assert_eq!(
@@ -353,8 +404,18 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn a_trailing_store_names_the_variable() {
-        let statement = parse(&tokens("5>B")).unwrap();
+    fn a_trailing_store_names_the_variable_after_any_display_conversion() {
+        let statement = parse(&tokens("5F→B")).unwrap();
         assert_eq!(statement.store, Some(Letter::B));
+        assert_eq!(statement.display, Some(DisplayAs::Fraction));
+    }
+
+    #[test]
+    fn functions_take_comma_separated_arguments() {
+        let statement = parse(&tokens("m1,2+3)")).unwrap();
+        let Expr::Call(Function::Max, arguments) = statement.expr else {
+            panic!("expected a call");
+        };
+        assert_eq!(arguments.len(), 2);
     }
 }

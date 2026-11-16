@@ -133,9 +133,11 @@ mod tests {
     #[test]
     fn the_entry_evaluates_as_an_expression_and_empty_keeps_the_value() {
         let mut cursor = FieldCursor::new(Probe::First, 0.0, Settings::default());
-        cursor
-            .editor
-            .replace(vec![Token::Pi, Token::Divide, Token::Digit(Digit::Two)]);
+        cursor.editor.replace(vec![
+            Token::Pi,
+            Token::Op(crate::vocabulary::Operator::Divide),
+            Token::Digit(Digit::Two),
+        ]);
         let value = cursor
             .value(&Memory::default(), Angle::Radian)
             .unwrap()

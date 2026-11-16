@@ -89,8 +89,9 @@ mod tests {
 
     #[test]
     fn typing_appends_at_the_end() {
-        let editor = typed(&[ONE, Token::Add, TWO]);
-        assert_eq!(editor.tokens(), [ONE, Token::Add, TWO]);
+        let plus = Token::Op(crate::vocabulary::Operator::Add);
+        let editor = typed(&[ONE, plus, TWO]);
+        assert_eq!(editor.tokens(), [ONE, plus, TWO]);
         assert_eq!(editor.cursor(), 3);
     }
 

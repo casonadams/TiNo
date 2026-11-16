@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+pub use crate::vocabulary::{DisplayAs, Function, Operator, PostfixOp};
+
 /// A named variable: `A` to `Z` and `θ`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Letter {
@@ -69,20 +71,18 @@ pub enum ListName {
     L6,
 }
 
-/// One unit of an entry: what one key press inserts and one DEL removes.
+/// One unit of an entry: what one key press or menu pick inserts and one
+/// DEL removes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Token {
     Digit(Digit),
     DecimalPoint,
     Exponent,
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Power,
     Negate,
-    Square,
-    Inverse,
+    Op(Operator),
+    Postfix(PostfixOp),
+    Func(Function),
+    Display(DisplayAs),
     LeftParen,
     RightParen,
     LeftBrace,
@@ -90,21 +90,11 @@ pub enum Token {
     LeftBracket,
     RightBracket,
     Comma,
-    Sqrt,
-    Sin,
-    Cos,
-    Tan,
-    ArcSin,
-    ArcCos,
-    ArcTan,
-    Log,
-    Ln,
-    TenPower,
-    ExpPower,
     Pi,
     EulerE,
     ImaginaryI,
     Ans,
+    Rand,
     Store,
     Letter(Letter),
     List(ListName),
@@ -126,27 +116,13 @@ impl Token {
             }
             Token::Letter(letter) => letter.symbol(),
             Token::List(list) => ["L₁", "L₂", "L₃", "L₄", "L₅", "L₆"][list as usize],
+            Token::Op(op) => op.text(),
+            Token::Postfix(op) => op.text(),
+            Token::Func(function) => function.text(),
+            Token::Display(display) => display.text(),
             Token::DecimalPoint => ".",
             Token::Exponent => "ᴇ",
-            Token::Add => "+",
-            Token::Subtract => "−",
-            Token::Multiply => "×",
-            Token::Divide => "÷",
-            Token::Power => "^",
             Token::Negate => "⁻",
-            Token::Square => "²",
-            Token::Inverse => "⁻¹",
-            Token::Sqrt => "√(",
-            Token::Sin => "sin(",
-            Token::Cos => "cos(",
-            Token::Tan => "tan(",
-            Token::ArcSin => "sin⁻¹(",
-            Token::ArcCos => "cos⁻¹(",
-            Token::ArcTan => "tan⁻¹(",
-            Token::Log => "log(",
-            Token::Ln => "ln(",
-            Token::TenPower => "10^(",
-            Token::ExpPower => "e^(",
             Token::LeftParen => "(",
             Token::RightParen => ")",
             Token::LeftBrace => "{",
@@ -158,6 +134,7 @@ impl Token {
             Token::EulerE => "e",
             Token::ImaginaryI => "i",
             Token::Ans => "Ans",
+            Token::Rand => "rand",
             Token::Store => "→",
             Token::SequenceU => "u",
             Token::SequenceV => "v",
@@ -169,18 +146,12 @@ impl Token {
         }
     }
 
-    /// Whether the token operates on a value before it (`+`, `²`, `→`).
+    /// Whether the token operates on a value before it (`+`, `²`, `→`), so
+    /// typing it first on the home screen applies it to `Ans`.
     pub fn takes_left_operand(self) -> bool {
         matches!(
             self,
-            Token::Add
-                | Token::Subtract
-                | Token::Multiply
-                | Token::Divide
-                | Token::Power
-                | Token::Square
-                | Token::Inverse
-                | Token::Store
+            Token::Op(_) | Token::Postfix(_) | Token::Display(_) | Token::Store
         )
     }
 }
@@ -195,9 +166,9 @@ mod tests {
             (Token::Digit(Digit::Seven), "7"),
             (Token::Letter(Letter::Theta), "θ"),
             (Token::List(ListName::L6), "L₆"),
-            (Token::Subtract, "−"),
+            (Token::Op(Operator::Subtract), "−"),
             (Token::Negate, "⁻"),
-            (Token::ArcSin, "sin⁻¹("),
+            (Token::Func(Function::ArcSin), "sin⁻¹("),
             (Token::Store, "→"),
         ];
         for (token, text) in cases {

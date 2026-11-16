@@ -1,9 +1,10 @@
-use super::{Calculator, HOME, View, error_view};
+use super::{Calculator, HOME, OpenMenu, View, error_view};
 use crate::{
     error_screen::{ErrorChoice, ErrorMenu, ErrorOrigin},
     field_editor::FieldCursor,
     keymap::{Action, Command, Edit},
     list_menu::ListMenu,
+    menus::{MenuCursor, menu_key},
     mode_screen::ModeCursor,
     token::{Digit, Token},
     window_editor::WindowField,
@@ -118,6 +119,28 @@ impl Calculator {
         match pick {
             Some(item) => self.zoom(item),
             None => View::Zoom(menu),
+        }
+    }
+
+    /// A typing menu: arrows move through tabs and items; ENTER or an
+    /// item's key types its token into the screen under the menu and
+    /// returns there; CLEAR returns without typing.
+    pub(super) fn perform_menu(&mut self, menu: OpenMenu, action: Action) -> View {
+        let OpenMenu { cursor, under } = menu;
+        let moved = |cursor: MenuCursor, under: Box<View>| View::Menu(OpenMenu { cursor, under });
+        let token = match action {
+            Action::Edit(Edit::Clear) => return *under,
+            Action::Edit(Edit::Left) => return moved(cursor.step_tab(false), under),
+            Action::Edit(Edit::Right) => return moved(cursor.step_tab(true), under),
+            Action::Command(Command::Up) => return moved(cursor.step_item(false), under),
+            Action::Command(Command::Down) => return moved(cursor.step_item(true), under),
+            Action::Command(Command::Enter) => Some(cursor.highlighted_token()),
+            Action::Insert(typed) => menu_key(typed).and_then(|key| cursor.token_for_key(key)),
+            _ => None,
+        };
+        match token {
+            Some(token) => self.perform_in(*under, Action::Insert(token)),
+            None => moved(cursor, under),
         }
     }
 }

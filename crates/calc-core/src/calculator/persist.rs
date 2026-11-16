@@ -10,7 +10,7 @@ use crate::{
 
 /// The snapshot format written by this version; a snapshot of another
 /// version is not read.
-const SNAPSHOT_VERSION: u32 = 1;
+const SNAPSHOT_VERSION: u32 = 2;
 
 /// What a calculator keeps across sessions: everything but the screen
 /// being shown and the modifier keys.

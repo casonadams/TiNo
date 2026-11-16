@@ -95,17 +95,19 @@ pub struct GraphScreen {
     pub trace: Option<Trace>,
 }
 
-/// A menu item and the digit that picks it.
+/// A menu item and the key that picks it (`1`, `0`, `A`).
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct MenuItem {
-    pub digit: u32,
+    pub key: String,
     pub label: String,
 }
 
-/// A numbered menu (ZOOM).
+/// A menu: its tab titles (one for ZOOM), the shown tab, its items and the
+/// highlighted item.
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct MenuScreen {
-    pub title: String,
+    pub tabs: Vec<String>,
+    pub tab: u32,
     pub items: Vec<MenuItem>,
     pub highlighted: u32,
 }
@@ -185,11 +187,12 @@ pub fn graph_screen(view: &calc_core::GraphView) -> GraphScreen {
 
 pub fn menu_screen(view: &calc_core::MenuView) -> MenuScreen {
     let items = view.items.iter().map(|item| MenuItem {
-        digit: u32::from(item.digit),
+        key: item.key.to_string(),
         label: item.label.to_owned(),
     });
     MenuScreen {
-        title: view.title.to_owned(),
+        tabs: view.tabs.iter().map(|&tab| tab.to_owned()).collect(),
+        tab: index(view.tab),
         items: items.collect(),
         highlighted: index(view.highlighted),
     }

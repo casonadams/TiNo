@@ -1,6 +1,7 @@
 use crate::{
     key::Key,
     token::{Digit, Letter, ListName, Token},
+    vocabulary::{Function as F, Operator as O, PostfixOp as P},
 };
 
 /// Which legend of a key a press means: its own, its 2nd or its ALPHA one.
@@ -119,22 +120,22 @@ fn legends(key: Key) -> Legends {
         Key::Apps => [cmd(C::Apps), cmd(C::Angle), letter(Letter::B)],
         Key::Prgm => [cmd(C::Prgm), cmd(C::Draw), letter(Letter::C)],
         Key::Vars => [cmd(C::Vars), cmd(C::Distr), None],
-        Key::Inverse => [ins(T::Inverse), cmd(C::Matrix), None],
-        Key::Sin => [ins(T::Sin), ins(T::ArcSin), letter(Letter::E)],
-        Key::Cos => [ins(T::Cos), ins(T::ArcCos), letter(Letter::F)],
-        Key::Tan => [ins(T::Tan), ins(T::ArcTan), letter(Letter::G)],
-        Key::Power => [ins(T::Power), ins(T::Pi), letter(Letter::H)],
-        Key::Square => [ins(T::Square), ins(T::Sqrt), letter(Letter::I)],
+        Key::Inverse => [post(P::Inverse), cmd(C::Matrix), None],
+        Key::Sin => [func(F::Sin), func(F::ArcSin), letter(Letter::E)],
+        Key::Cos => [func(F::Cos), func(F::ArcCos), letter(Letter::F)],
+        Key::Tan => [func(F::Tan), func(F::ArcTan), letter(Letter::G)],
+        Key::Power => [op(O::Power), ins(T::Pi), letter(Letter::H)],
+        Key::Square => [post(P::Square), func(F::Sqrt), letter(Letter::I)],
         Key::Comma => [ins(T::Comma), ins(T::Exponent), letter(Letter::J)],
         Key::LeftParen => [ins(T::LeftParen), ins(T::LeftBrace), letter(Letter::K)],
         Key::RightParen => [ins(T::RightParen), ins(T::RightBrace), letter(Letter::L)],
-        Key::Divide => [ins(T::Divide), ins(T::EulerE), letter(Letter::M)],
-        Key::Log => [ins(T::Log), ins(T::TenPower), letter(Letter::N)],
-        Key::Multiply => [ins(T::Multiply), ins(T::LeftBracket), letter(Letter::R)],
-        Key::Ln => [ins(T::Ln), ins(T::ExpPower), letter(Letter::S)],
-        Key::Subtract => [ins(T::Subtract), ins(T::RightBracket), letter(Letter::W)],
+        Key::Divide => [op(O::Divide), ins(T::EulerE), letter(Letter::M)],
+        Key::Log => [func(F::Log), func(F::TenPower), letter(Letter::N)],
+        Key::Multiply => [op(O::Multiply), ins(T::LeftBracket), letter(Letter::R)],
+        Key::Ln => [func(F::Ln), func(F::ExpPower), letter(Letter::S)],
+        Key::Subtract => [op(O::Subtract), ins(T::RightBracket), letter(Letter::W)],
         Key::Store => [ins(T::Store), cmd(C::Recall), letter(Letter::X)],
-        Key::Add => [ins(T::Add), cmd(C::Mem), ins(T::Quote)],
+        Key::Add => [op(O::Add), cmd(C::Mem), ins(T::Quote)],
         Key::On => [cmd(C::On), cmd(C::Off), None],
         Key::Decimal => [ins(T::DecimalPoint), ins(T::ImaginaryI), ins(T::Colon)],
         Key::Negate => [ins(T::Negate), ins(T::Ans), ins(T::Question)],
@@ -164,6 +165,18 @@ fn ins(token: Token) -> Option<Action> {
     Some(Action::Insert(token))
 }
 
+fn op(operator: O) -> Option<Action> {
+    ins(Token::Op(operator))
+}
+
+fn post(operator: P) -> Option<Action> {
+    ins(Token::Postfix(operator))
+}
+
+fn func(function: F) -> Option<Action> {
+    ins(Token::Func(function))
+}
+
 fn letter(letter: Letter) -> Option<Action> {
     ins(Token::Letter(letter))
 }
@@ -191,8 +204,8 @@ mod tests {
     #[test]
     fn each_layer_reads_its_own_legend() {
         let cases = [
-            (Key::Sin, Layer::Normal, ins(Token::Sin)),
-            (Key::Sin, Layer::Second, ins(Token::ArcSin)),
+            (Key::Sin, Layer::Normal, func(F::Sin)),
+            (Key::Sin, Layer::Second, func(F::ArcSin)),
             (Key::Sin, Layer::Alpha, letter(Letter::E)),
             (Key::Digit3, Layer::Second, list(ListName::L3)),
             (Key::Digit3, Layer::Alpha, letter(Letter::Theta)),

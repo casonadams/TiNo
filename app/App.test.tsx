@@ -20,6 +20,17 @@ test("enter shows the result and clears the entry line", async () => {
   expect(app.shows("label:12×12")).toBe(false);
 });
 
+test("MATH shows its tabs and an item's key types it into the entry", async () => {
+  const app = await open("./App.tsx");
+  await app.press("id:key-math");
+  for (const text of ["MATH", "NUM", "PROB", "1:►Frac", "A:logBASE("]) expect(app.texts()).toContain(text);
+  await app.press("id:key-right");
+  expect(app.texts()).toContain("0:remainder(");
+  await app.press("id:key-1");
+  expect(app.shows("id:menu")).toBe(false);
+  expect(app.shows("label:abs(")).toBe(true);
+});
+
 test("an error offers Quit and Goto; Goto returns to the entry", async () => {
   const app = await open("./App.tsx");
   for (const key of ["1", "divide", "0", "enter"]) await app.press(`id:key-${key}`);

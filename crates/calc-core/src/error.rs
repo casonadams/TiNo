@@ -8,6 +8,8 @@ pub enum ErrorKind {
     Domain,
     NonReal,
     Overflow,
+    /// A function given more or fewer arguments than it takes.
+    Argument,
     /// A WINDOW whose ranges do not increase or whose Xres is not 1 to 8.
     WindowRange,
     /// Valid calculator syntax that this calculator does not evaluate yet.
@@ -43,6 +45,7 @@ impl CalcError {
             ErrorKind::Domain => "ERR:DOMAIN",
             ErrorKind::NonReal => "ERR:NONREAL ANSWER",
             ErrorKind::Overflow => "ERR:OVERFLOW",
+            ErrorKind::Argument => "ERR:ARGUMENT",
             ErrorKind::WindowRange => "ERR:WINDOW RANGE",
             ErrorKind::Unsupported => "ERR:UNSUPPORTED",
         }

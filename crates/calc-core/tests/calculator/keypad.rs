@@ -16,8 +16,9 @@ fn pressing_second_twice_cancels_it() {
 
 #[test]
 fn alpha_applies_to_one_key() {
-    let calculator = pressed(&[Key::Alpha, Key::Math, Key::Math]);
+    let calculator = pressed(&[Key::Alpha, Key::Math, Key::Digit1]);
     assert_eq!(home(&calculator).entry[0], Token::Letter(Letter::A));
+    assert_eq!(entry_text(&calculator), "A1");
     assert_eq!(calculator.screen().cursor_style, CursorStyle::Overwrite);
 }
 

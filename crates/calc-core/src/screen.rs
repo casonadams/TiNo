@@ -155,17 +155,19 @@ pub struct TraceView {
     pub y_text: String,
 }
 
-/// A numbered menu.
+/// A menu: its tabs (one for ZOOM), the shown tab's items, and the
+/// highlighted item.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MenuView {
-    pub title: &'static str,
+    pub tabs: Vec<&'static str>,
+    pub tab: usize,
     pub items: Vec<MenuItemView>,
     pub highlighted: usize,
 }
 
-/// A menu item and the digit that picks it.
+/// A menu item and the key that picks it (`1`, `0`, `A`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MenuItemView {
-    pub digit: u8,
+    pub key: char,
     pub label: &'static str,
 }

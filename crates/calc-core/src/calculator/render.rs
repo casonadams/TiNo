@@ -6,6 +6,7 @@ use crate::{
     functions::{FUNCTION_COUNT, Functions},
     keymap::Layer,
     list_menu::ListMenu,
+    menus::MenuCursor,
     mode_screen::{ModeCursor, ModeRow},
     modifiers::AlphaState,
     plot::plot,
@@ -42,6 +43,7 @@ impl Calculator {
                 View::Table(cursor) => ScreenView::Table(self.table_view(*cursor)),
                 View::Graph(trace) => ScreenView::Graph(Box::new(self.graph_view(*trace))),
                 View::Zoom(menu) => ScreenView::Menu(zoom_menu(*menu)),
+                View::Menu(menu) => ScreenView::Menu(typing_menu(menu.cursor)),
             },
         }
     }
@@ -158,15 +160,31 @@ fn error_view(menu: &ErrorMenu) -> ErrorView {
 }
 
 fn zoom_menu(menu: ListMenu) -> MenuView {
+    let items = ZoomItem::ALL.iter().map(|item| MenuItemView {
+        key: char::from(b'0' + item.digit()),
+        label: item.label(),
+    });
     MenuView {
-        title: "ZOOM",
-        items: ZoomItem::ALL
-            .iter()
-            .map(|item| MenuItemView {
-                digit: item.digit(),
-                label: item.label(),
-            })
-            .collect(),
+        tabs: vec!["ZOOM"],
+        tab: 0,
+        items: items.collect(),
         highlighted: menu.highlighted(),
+    }
+}
+
+fn typing_menu(cursor: MenuCursor) -> MenuView {
+    let items = cursor
+        .current_tab()
+        .entries
+        .iter()
+        .map(|entry| MenuItemView {
+            key: entry.key,
+            label: entry.label,
+        });
+    MenuView {
+        tabs: cursor.kind.tabs().iter().map(|tab| tab.title).collect(),
+        tab: cursor.tab,
+        items: items.collect(),
+        highlighted: cursor.highlighted,
     }
 }

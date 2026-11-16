@@ -57,8 +57,8 @@ at a WebAssembly clang and `llvm-ar` (see README).
   the same token set; add a token to every skin when you add one. No raw colors or palette classes in components.
 - **Skins** are data: `app/skins/<id>/theme.json` and a keypad layout, registered in `app/skins/index.ts`. The
   app test "every key of every skin" catches a key id the core does not know.
-- **Saved state** has a version (`SNAPSHOT_VERSION` in `calculator/persist.rs`). Changing what is saved means a new
-  version; a snapshot of another version is not read and the app starts fresh.
+- **Saved state** has a version (`SNAPSHOT_VERSION` in `calculator/persist.rs`). A new field with a serde default keeps
+  the version; any change an older snapshot cannot be read under means a new version, and the app starts fresh.
 - **NSH** is pinned in `mise.toml` and as `=0.5.1` for `nsh-core` in `Cargo.toml`; upgrade both together and rerun
   every check. Never edit `app/.nsh/`; it is generated.
 
