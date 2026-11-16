@@ -43,8 +43,8 @@ export function Lcd(props: { screen: () => Screen; settingsOpen: () => boolean }
     </View>
   );
   return (
-    <View class="bg-bezel rounded-xl p-3">
-      <View class="bg-lcd rounded-md gap-2 p-3" style={{ aspectRatio: 4 / 3 }}>
+    <View class="bg-bezel rounded-xl p-3" style={{ flexShrink: 1, minHeight: 0 }}>
+      <View class="bg-lcd rounded-md gap-2 p-3" style={{ aspectRatio: 4 / 3, flexShrink: 1, minHeight: 0 }}>
         <StatusBar screen={props.screen} />
         <If when={props.settingsOpen()} else={calculatorScreen}>
           <SettingsView />
