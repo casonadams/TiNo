@@ -21,12 +21,22 @@ test("enter shows the result and clears the entry line", async () => {
   expect(app.shows("label:12×12")).toBe(false);
 });
 
-test("an error is shown until the next key press", async () => {
+test("an error offers Quit and Goto; Goto returns to the entry", async () => {
   const app = await open("./App.tsx");
   for (const key of ["1", "divide", "0", "enter"]) await app.press(`id:key-${key}`);
-  expect(app.texts()).toContain("ERR:DIVIDE BY 0");
-  await app.press("id:key-del");
+  for (const text of ["ERR:DIVIDE BY 0", "1:Quit", "2:Goto"]) expect(app.texts()).toContain(text);
+  await app.press("id:key-2");
   expect(app.texts()).not.toContain("ERR:DIVIDE BY 0");
+  expect(app.shows("label:1÷0")).toBe(true);
+});
+
+test("MODE changes how results are written and the status bar says so", async () => {
+  const app = await open("./App.tsx");
+  for (const key of ["mode", "down", "right", "right", "right", "enter", "second", "mode"]) {
+    await app.press(`id:key-${key}`);
+  }
+  for (const key of ["2", "divide", "3", "enter"]) await app.press(`id:key-${key}`);
+  for (const text of [".67", "NORMAL FIX2 RADIAN"]) expect(app.texts()).toContain(text);
 });
 
 test("the computer keyboard presses calculator keys", async () => {

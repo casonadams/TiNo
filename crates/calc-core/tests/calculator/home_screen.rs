@@ -1,29 +1,16 @@
-use calc_core::{Calculator, ErrorKind, Key};
-
-fn pressed(keys: &[Key]) -> Calculator {
-    let mut calculator = Calculator::default();
-    press(&mut calculator, keys);
-    calculator
-}
-
-fn press(calculator: &mut Calculator, keys: &[Key]) {
-    keys.iter().for_each(|&key| calculator.press(key));
-}
-
-fn entry_text(calculator: &Calculator) -> String {
-    calculator.screen().entry.iter().map(|t| t.text()).collect()
-}
-
-fn results(calculator: &Calculator) -> Vec<&str> {
-    let history = calculator.screen().history;
-    history
-        .iter()
-        .map(|line| line.output.result.as_str())
-        .collect()
-}
+use crate::support::{entry_text, home, press, pressed, results};
+use calc_core::{ErrorChoice, Key, ScreenView};
 
 const ALPHA_A: [Key; 2] = [Key::Alpha, Key::Math];
 const ENTRY: [Key; 2] = [Key::Second, Key::Enter];
+const QUIT: [Key; 2] = [Key::Second, Key::Mode];
+
+fn error_message(calculator: &calc_core::Calculator) -> Option<&'static str> {
+    match calculator.screen().view {
+        ScreenView::Error(error) => Some(error.message),
+        _ => None,
+    }
+}
 
 #[test]
 fn enter_evaluates_the_line_into_history() {
@@ -35,7 +22,7 @@ fn enter_evaluates_the_line_into_history() {
         Key::Digit4,
         Key::Enter,
     ]);
-    let line = &calculator.screen().history[0];
+    let line = &home(&calculator).history[0];
     assert_eq!(line.output.result, "14");
     assert_eq!(line.output.latex, "2+3\\times 4");
     assert_eq!(entry_text(&calculator), "");
@@ -52,7 +39,7 @@ fn an_operator_first_on_the_line_applies_to_ans() {
     ]);
     assert_eq!(results(&calculator), ["5", "10"]);
     assert_eq!(
-        calculator.screen().history[1].output.latex,
+        home(&calculator).history[1].output.latex,
         "\\mathrm{Ans}\\times 2"
     );
 }
@@ -92,29 +79,51 @@ fn store_assigns_a_variable_that_later_entries_read() {
 }
 
 #[test]
-fn an_error_keeps_the_entry_with_the_cursor_at_the_fault() {
-    let calculator = pressed(&[Key::Digit2, Key::Add, Key::Enter]);
-    let screen = calculator.screen();
-    assert_eq!(screen.error.map(|e| e.kind), Some(ErrorKind::Syntax));
-    assert_eq!((entry_text(&calculator).as_str(), screen.cursor), ("2+", 2));
-    assert!(screen.history.is_empty());
+fn an_error_opens_the_error_screen_on_quit() {
+    let calculator = pressed(&[Key::Digit1, Key::Divide, Key::Digit0, Key::Enter]);
+    match calculator.screen().view {
+        ScreenView::Error(error) => {
+            assert_eq!(error.message, "ERR:DIVIDE BY 0");
+            assert_eq!(error.highlighted, ErrorChoice::Quit);
+        }
+        other => panic!("expected the error screen, got {other:?}"),
+    }
 }
 
 #[test]
-fn the_next_key_dismisses_the_error_and_editing_continues() {
-    let mut calculator = pressed(&[Key::Digit2, Key::Add, Key::Enter, Key::Digit3]);
-    assert_eq!(calculator.screen().error, None);
-    press(&mut calculator, &[Key::Enter]);
+fn quit_returns_to_an_empty_line_and_entry_still_recalls_the_failed_entry() {
+    let mut calculator = pressed(&[Key::Digit2, Key::Add, Key::Enter, Key::Digit1]);
+    assert_eq!(entry_text(&calculator), "");
+    assert!(home(&calculator).history.is_empty());
+    press(&mut calculator, &ENTRY);
+    assert_eq!(entry_text(&calculator), "2+");
+}
+
+#[test]
+fn goto_returns_to_the_entry_with_the_cursor_at_the_fault() {
+    let mut calculator = pressed(&[
+        Key::Digit2,
+        Key::Add,
+        Key::Multiply,
+        Key::Digit3,
+        Key::Enter,
+    ]);
+    press(&mut calculator, &[Key::Down, Key::Enter]);
+    assert_eq!(
+        (entry_text(&calculator).as_str(), home(&calculator).cursor),
+        ("2+×3", 2)
+    );
+    press(&mut calculator, &[Key::Del, Key::Enter]);
     assert_eq!(results(&calculator), ["5"]);
 }
 
 #[test]
-fn evaluation_errors_are_reported() {
-    let calculator = pressed(&[Key::Digit1, Key::Divide, Key::Digit0, Key::Enter]);
-    assert_eq!(
-        calculator.screen().error.map(|e| e.kind),
-        Some(ErrorKind::DivideByZero)
-    );
+fn the_error_screen_waits_for_a_choice() {
+    let mut calculator = pressed(&[Key::Ln, Key::Digit0, Key::Enter, Key::Digit7, Key::Sin]);
+    assert_eq!(error_message(&calculator), Some("ERR:DOMAIN"));
+    press(&mut calculator, &QUIT);
+    assert_eq!(error_message(&calculator), None);
+    assert_eq!(entry_text(&calculator), "");
 }
 
 #[test]
@@ -122,5 +131,5 @@ fn clear_on_an_empty_line_clears_the_screen() {
     let mut calculator = pressed(&[Key::Digit1, Key::Enter, Key::Digit2, Key::Clear]);
     assert_eq!(results(&calculator), ["1"]);
     press(&mut calculator, &[Key::Clear]);
-    assert!(calculator.screen().history.is_empty());
+    assert!(home(&calculator).history.is_empty());
 }

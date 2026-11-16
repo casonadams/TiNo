@@ -1,14 +1,5 @@
-use calc_core::{Calculator, CursorStyle, Key, Token, token::Letter};
-
-fn pressed(keys: &[Key]) -> Calculator {
-    let mut calculator = Calculator::default();
-    keys.iter().for_each(|&key| calculator.press(key));
-    calculator
-}
-
-fn entry_text(calculator: &Calculator) -> String {
-    calculator.screen().entry.iter().map(|t| t.text()).collect()
-}
+use crate::support::{entry_text, home, pressed};
+use calc_core::{CursorStyle, Key, Token, token::Letter};
 
 #[test]
 fn second_applies_to_one_key() {
@@ -26,7 +17,7 @@ fn pressing_second_twice_cancels_it() {
 #[test]
 fn alpha_applies_to_one_key() {
     let calculator = pressed(&[Key::Alpha, Key::Math, Key::Math]);
-    assert_eq!(calculator.screen().entry[0], Token::Letter(Letter::A));
+    assert_eq!(home(&calculator).entry[0], Token::Letter(Letter::A));
     assert_eq!(calculator.screen().cursor_style, CursorStyle::Overwrite);
 }
 

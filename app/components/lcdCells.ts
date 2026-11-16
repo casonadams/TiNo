@@ -1,4 +1,4 @@
-import type { CursorStyle, Screen } from "tino/native";
+import type { CursorStyle, HomeScreen } from "tino/native";
 
 /** How a cell shows the cursor: not at all, as a block over it, or as a bar before it. */
 export type CellCursor = "none" | "block" | "bar";
@@ -19,15 +19,15 @@ const END_GLYPHS: Record<CursorStyle, string> = {
 };
 
 /** The entry line's cells, with the cursor on the one it is at. */
-export function lcdCells(screen: Screen): LcdCell[] {
-  const cursor: CellCursor = screen.cursorStyle === "insert" ? "bar" : "block";
-  const cells = screen.entry.map((text, index): LcdCell => ({
+export function lcdCells(home: HomeScreen, style: CursorStyle): LcdCell[] {
+  const cursor: CellCursor = style === "insert" ? "bar" : "block";
+  const cells = home.entry.map((text, index): LcdCell => ({
     index,
     text,
-    cursor: index === screen.cursor ? cursor : "none",
+    cursor: index === home.cursor ? cursor : "none",
   }));
-  if (screen.cursor === screen.entry.length) {
-    cells.push({ index: cells.length, text: END_GLYPHS[screen.cursorStyle], cursor });
+  if (home.cursor === home.entry.length) {
+    cells.push({ index: cells.length, text: END_GLYPHS[style], cursor });
   }
   return cells;
 }

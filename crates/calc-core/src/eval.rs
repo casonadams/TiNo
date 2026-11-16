@@ -3,7 +3,9 @@ use std::f64::consts::{E, PI};
 use crate::{
     error::{CalcError, ErrorKind},
     expr::{BinaryOp, Constant, Expr, Function, Postfix},
+    settings::Angle,
     token::Letter,
+    trig,
 };
 
 /// Results at or beyond this magnitude overflow, as on the calculator.
@@ -45,25 +47,48 @@ impl Memory {
     }
 }
 
-/// Evaluates `expr` over real numbers, angles in radians.
-pub fn evaluate(expr: &Expr, memory: &Memory) -> Result<f64, CalcError> {
-    let value = match expr {
-        Expr::Number(number) => number.value,
-        Expr::Constant(Constant::Pi) => PI,
-        Expr::Constant(Constant::E) => E,
-        Expr::Variable(letter) => memory.get(*letter),
-        Expr::Ans => memory.ans(),
-        Expr::Negate(operand) => -evaluate(operand, memory)?,
-        Expr::Postfix(op, operand) => postfix(*op, evaluate(operand, memory)?)?,
-        Expr::Binary(op, left, right) => {
-            binary(*op, evaluate(left, memory)?, evaluate(right, memory)?)?
-        }
-        Expr::Function(function, argument) => apply(*function, evaluate(argument, memory)?)?,
-    };
-    in_range(value)
+/// Evaluates `expr` over real numbers, trigonometry in `angle` units.
+pub fn evaluate(expr: &Expr, memory: &Memory, angle: Angle) -> Result<f64, CalcError> {
+    Evaluator { memory, angle }.value(expr)
 }
 
-fn fail<T>(kind: ErrorKind) -> Result<T, CalcError> {
+struct Evaluator<'a> {
+    memory: &'a Memory,
+    angle: Angle,
+}
+
+impl Evaluator<'_> {
+    fn value(&self, expr: &Expr) -> Result<f64, CalcError> {
+        let value = match expr {
+            Expr::Number(number) => number.value,
+            Expr::Constant(Constant::Pi) => PI,
+            Expr::Constant(Constant::E) => E,
+            Expr::Variable(letter) => self.memory.get(*letter),
+            Expr::Ans => self.memory.ans(),
+            Expr::Negate(operand) => -self.value(operand)?,
+            Expr::Postfix(op, operand) => postfix(*op, self.value(operand)?)?,
+            Expr::Binary(op, left, right) => binary(*op, self.value(left)?, self.value(right)?)?,
+            Expr::Function(function, argument) => self.apply(*function, self.value(argument)?)?,
+        };
+        in_range(value)
+    }
+
+    fn apply(&self, function: Function, x: f64) -> Result<f64, CalcError> {
+        match function {
+            Function::Sqrt if x < 0.0 => fail(ErrorKind::NonReal),
+            Function::Sqrt => Ok(x.sqrt()),
+            Function::Sin | Function::Cos | Function::Tan => trig::forward(function, x, self.angle),
+            Function::ArcSin | Function::ArcCos | Function::ArcTan => {
+                trig::inverse(function, x, self.angle)
+            }
+            Function::Log | Function::Ln => logarithm(function, x),
+            Function::TenPower => Ok(10f64.powf(x)),
+            Function::ExpPower => Ok(x.exp()),
+        }
+    }
+}
+
+pub(crate) fn fail<T>(kind: ErrorKind) -> Result<T, CalcError> {
     Err(CalcError::new(kind))
 }
 
@@ -134,23 +159,6 @@ fn negative_root(base: f64, exponent: f64) -> Result<f64, CalcError> {
     }
 }
 
-fn apply(function: Function, x: f64) -> Result<f64, CalcError> {
-    match function {
-        Function::Sqrt if x < 0.0 => fail(ErrorKind::NonReal),
-        Function::Sqrt => Ok(x.sqrt()),
-        Function::Sin => Ok(x.sin()),
-        Function::Cos => Ok(x.cos()),
-        Function::Tan => Ok(x.tan()),
-        Function::ArcSin | Function::ArcCos if x.abs() > 1.0 => fail(ErrorKind::Domain),
-        Function::ArcSin => Ok(x.asin()),
-        Function::ArcCos => Ok(x.acos()),
-        Function::ArcTan => Ok(x.atan()),
-        Function::Log | Function::Ln => logarithm(function, x),
-        Function::TenPower => Ok(10f64.powf(x)),
-        Function::ExpPower => Ok(x.exp()),
-    }
-}
-
 fn logarithm(function: Function, x: f64) -> Result<f64, CalcError> {
     match x {
         0.0 => fail(ErrorKind::Domain),
@@ -166,7 +174,11 @@ mod tests {
     use crate::parse::{parse, tests::tokens};
 
     fn value_of(spelling: &str, memory: &Memory) -> Result<f64, CalcError> {
-        evaluate(&parse(&tokens(spelling)).unwrap().expr, memory)
+        evaluate(
+            &parse(&tokens(spelling)).unwrap().expr,
+            memory,
+            Angle::Radian,
+        )
     }
 
     #[test]
