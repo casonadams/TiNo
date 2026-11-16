@@ -27,7 +27,19 @@
       "key-alpha": "#5cc46e",
       "key-alpha-foreground": "#0b1f10",
       "legend-second": "#6cc4f2",
-      "legend-alpha": "#7bd88a"
+      "legend-alpha": "#7bd88a",
+      "graph-axis": "#4b5058",
+      "graph-trace": "#121417",
+      "graph-1": "#1f5fd6",
+      "graph-2": "#d63131",
+      "graph-3": "#121417",
+      "graph-4": "#c42fb5",
+      "graph-5": "#1f9a3c",
+      "graph-6": "#e07a10",
+      "graph-7": "#8a5a2b",
+      "graph-8": "#1b2f7a",
+      "graph-9": "#3aa6e0",
+      "graph-10": "#c9a800"
     }
   }
 }

@@ -269,8 +269,8 @@ pub(crate) mod tests {
     use crate::token::{Digit, Letter};
 
     /// Tokens for a compact spelling: digits, `.`, `+-*/^`, `_` negate,
-    /// `()`, `E` exponent, `p` π, `²`, `!` inverse, `>` store, `A`-`D`
-    /// letters, `a` Ans, `s` sin(, `r` √(.
+    /// `()`, `E` exponent, `p` π, `²`, `!` inverse, `>` store, `A`-`D` and
+    /// `X` letters, `a` Ans, `s` sin(, `r` √(.
     pub(crate) fn tokens(spelling: &str) -> Vec<Token> {
         spelling.chars().map(token_for).collect()
     }
@@ -314,6 +314,7 @@ pub(crate) mod tests {
             'B' => Token::Letter(Letter::B),
             'C' => Token::Letter(Letter::C),
             'D' => Token::Letter(Letter::D),
+            'X' => Token::Letter(Letter::X),
             'a' => Token::Ans,
             's' => Token::Sin,
             'r' => Token::Sqrt,

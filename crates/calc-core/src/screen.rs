@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use crate::{error_screen::ErrorChoice, home::HistoryLine, mode_screen::ModeRow, token::Token};
+use crate::{
+    error_screen::ErrorChoice, home::HistoryLine, mode_screen::ModeRow, plot::Plot, token::Token,
+    window::Window, window_editor::WindowField,
+};
 
 /// What the cursor shows: the mode the next key press is in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,6 +39,10 @@ pub enum ScreenView<'a> {
     Home(HomeView<'a>),
     Mode(ModeView),
     Error(ErrorView),
+    Functions(FunctionsView<'a>),
+    Window(WindowView<'a>),
+    Graph(Box<GraphView>),
+    Menu(MenuView),
 }
 
 /// The home screen: evaluated entries over the entry line.
@@ -68,4 +75,83 @@ pub struct ErrorView {
     pub message: &'static str,
     pub choices: [ErrorChoice; 2],
     pub highlighted: ErrorChoice,
+}
+
+/// The Y= screen: one row per function.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FunctionsView<'a> {
+    pub rows: Vec<FunctionRowView<'a>>,
+}
+
+/// A Y= row: its name, entry and whether it is graphed; on the focused row,
+/// where the cursor is.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FunctionRowView<'a> {
+    pub label: String,
+    pub entry: &'a [Token],
+    pub enabled: bool,
+    pub focus: Option<RowFocus>,
+}
+
+/// Where the cursor is on the focused Y= row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RowFocus {
+    /// On the `=` sign.
+    Selector,
+    /// In the entry, at this token.
+    Entry(usize),
+}
+
+/// The WINDOW screen: one row per field.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WindowView<'a> {
+    pub rows: Vec<WindowRowView<'a>>,
+}
+
+/// A WINDOW row: its field and value, or the entry being typed into the
+/// focused one with the cursor's position.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WindowRowView<'a> {
+    pub field: WindowField,
+    pub value: String,
+    pub editing: Option<(&'a [Token], usize)>,
+}
+
+/// The graph screen: the window, the sampled functions, tick positions and
+/// the trace cursor when tracing.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphView {
+    pub window: Window,
+    pub plot: Plot,
+    pub x_ticks: Vec<f64>,
+    pub y_ticks: Vec<f64>,
+    pub trace: Option<TraceView>,
+}
+
+/// The trace cursor's function and point, with the bottom line's texts.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TraceView {
+    pub slot: usize,
+    /// The function as typed: `Y1=X²`.
+    pub equation: String,
+    pub x: f64,
+    pub y: Option<f64>,
+    /// The point as the calculator writes it: `X=1.5`, `Y=2.25` (`Y=` alone where undefined).
+    pub x_text: String,
+    pub y_text: String,
+}
+
+/// A numbered menu.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MenuView {
+    pub title: &'static str,
+    pub items: Vec<MenuItemView>,
+    pub highlighted: usize,
+}
+
+/// A menu item and the digit that picks it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MenuItemView {
+    pub digit: u8,
+    pub label: &'static str,
 }

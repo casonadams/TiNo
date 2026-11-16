@@ -39,6 +39,26 @@ test("MODE changes how results are written and the status bar says so", async ()
   for (const text of [".67", "NORMAL FIX2 RADIAN"]) expect(app.texts()).toContain(text);
 });
 
+test("a function typed in Y= graphs, and TRACE reports its points", async () => {
+  const app = await open("./App.tsx");
+  for (const key of ["y-equals", "xt-theta-n", "square", "trace"]) await app.press(`id:key-${key}`);
+  expect(app.shows("id:graph")).toBe(true);
+  for (const text of ["Y1=X²", "X=0", "Y=0"]) expect(app.texts()).toContain(text);
+  await app.press("id:key-right");
+  expect(app.texts()).not.toContain("X=0");
+});
+
+test("dragging the graph moves the window; tapping it traces", async () => {
+  const app = await open("./App.tsx");
+  for (const key of ["y-equals", "xt-theta-n", "graph"]) await app.press(`id:key-${key}`);
+  await app.drag("id:graph", { x: 0, y: 0 });
+  expect(app.texts()).toContain("Y1=X");
+  await app.drag("id:graph", { x: -60, y: 0 });
+  await app.press("id:key-window");
+  const texts = app.texts();
+  expect(texts[texts.indexOf("Xmax=") + 1]).not.toBe("10");
+});
+
 test("the computer keyboard presses calculator keys", async () => {
   const app = await open("./App.tsx");
   await app.keyboard.press("4");

@@ -1,7 +1,7 @@
-use crate::{error::CalcError, token::Token};
+use crate::{error::CalcError, token::Token, window_editor::WindowField};
 
-/// The error screen's choices: back to an empty home line, or back to the
-/// entry with the cursor at the fault.
+/// The error screen's choices: back to the home screen, or back to where
+/// the error was raised with the cursor at the fault.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorChoice {
     Quit,
@@ -19,20 +19,33 @@ impl ErrorChoice {
     }
 }
 
-/// The error screen: the error, the entry that raised it, and the
-/// highlighted choice.
+/// Where an error was raised, which Goto returns to.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ErrorOrigin {
+    /// A home screen entry.
+    Home(Vec<Token>),
+    /// The Y= function in this slot.
+    Function(usize),
+    /// A WINDOW field and the entry typed into it.
+    WindowField(WindowField, Vec<Token>),
+    /// The WINDOW settings as a whole.
+    Window,
+}
+
+/// The error screen: the error, where it was raised, and the highlighted
+/// choice.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ErrorMenu {
     pub error: CalcError,
-    pub entry: Vec<Token>,
+    pub origin: ErrorOrigin,
     pub highlighted: ErrorChoice,
 }
 
 impl ErrorMenu {
-    pub fn new(error: CalcError, entry: Vec<Token>) -> Self {
+    pub fn new(error: CalcError, origin: ErrorOrigin) -> Self {
         ErrorMenu {
             error,
-            entry,
+            origin,
             highlighted: ErrorChoice::Quit,
         }
     }

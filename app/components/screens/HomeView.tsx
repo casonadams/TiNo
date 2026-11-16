@@ -1,28 +1,7 @@
 import { Text, View } from "nsh";
 import { TextView } from "nsh/base";
 import type { CursorStyle, HistoryLine, HomeScreen } from "tino/native";
-import { type LcdCell, lcdCells } from "../lcdCells";
-
-function Cell(props: { cell: () => LcdCell }) {
-  return (
-    <View class="flex-row items-center" style={{ height: 30 }}>
-      <If when={props.cell().cursor === "bar"}>
-        <View class="bg-lcd-cursor" style={{ width: 2, height: 24 }} />
-      </If>
-      <View
-        class={props.cell().cursor === "block" ? "bg-lcd-cursor rounded-sm" : "bg-lcd"}
-        style={{ minWidth: props.cell().text === "" ? 12 : 0, height: 26, justifyContent: "center" }}
-      >
-        <Text
-          class={props.cell().cursor === "block" ? "text-lcd" : "text-lcd-foreground"}
-          style={{ fontSize: 22 }}
-        >
-          {props.cell().text}
-        </Text>
-      </View>
-    </View>
-  );
-}
+import { EntryLine } from "../EntryLine";
 
 /** An evaluated entry: typeset on the left, its result on the right below it. */
 function HistoryRow(props: { line: () => HistoryLine }) {
@@ -43,10 +22,14 @@ export function HomeView(props: { home: () => HomeScreen; cursorStyle: () => Cur
       <Each of={props.home().history} key={(line: HistoryLine) => line.id}>
         {(line) => <HistoryRow line={line} />}
       </Each>
-      <View class="flex-row flex-wrap items-center" testID="entry" accessibilityLabel={props.home().entry.join("")}>
-        <Each of={lcdCells(props.home(), props.cursorStyle())} key={(cell: LcdCell) => cell.index}>
-          {(cell) => <Cell cell={cell} />}
-        </Each>
+      <View class="flex-row">
+        <EntryLine
+          entry={() => props.home().entry}
+          cursor={() => props.home().cursor}
+          cursorStyle={props.cursorStyle}
+          size={22}
+          testID="entry"
+        />
       </View>
     </View>
   );

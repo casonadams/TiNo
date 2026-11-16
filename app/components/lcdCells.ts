@@ -1,9 +1,9 @@
-import type { CursorStyle, HomeScreen } from "tino/native";
+import type { CursorStyle } from "tino/native";
 
 /** How a cell shows the cursor: not at all, as a block over it, or as a bar before it. */
 export type CellCursor = "none" | "block" | "bar";
 
-/** One drawn cell of the entry line: a token, or the empty place after the last one. */
+/** One drawn cell of an entry line: a token, or the empty place after the last one. */
 export interface LcdCell {
   index: number;
   text: string;
@@ -18,16 +18,16 @@ const END_GLYPHS: Record<CursorStyle, string> = {
   alphaLock: "A",
 };
 
-/** The entry line's cells, with the cursor on the one it is at. */
-export function lcdCells(home: HomeScreen, style: CursorStyle): LcdCell[] {
-  const cursor: CellCursor = style === "insert" ? "bar" : "block";
-  const cells = home.entry.map((text, index): LcdCell => ({
+/** An entry line's cells; with a cursor, the cursor on the cell it is at. */
+export function lcdCells(entry: string[], cursor: number | null | undefined, style: CursorStyle): LcdCell[] {
+  const shown: CellCursor = style === "insert" ? "bar" : "block";
+  const cells = entry.map((text, index): LcdCell => ({
     index,
     text,
-    cursor: index === home.cursor ? cursor : "none",
+    cursor: index === cursor ? shown : "none",
   }));
-  if (home.cursor === home.entry.length) {
-    cells.push({ index: cells.length, text: END_GLYPHS[style], cursor });
+  if (cursor === entry.length) {
+    cells.push({ index: cells.length, text: END_GLYPHS[style], cursor: shown });
   }
   return cells;
 }

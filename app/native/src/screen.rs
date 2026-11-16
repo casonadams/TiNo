@@ -2,6 +2,11 @@
 
 use nsh_core::prelude::*;
 
+use crate::graphing::{
+    FunctionsScreen, GraphScreen, MenuScreen, WindowScreen, functions_screen, graph_screen,
+    menu_screen, window_screen,
+};
+
 /// What the cursor shows: the mode the next key press is in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PropEnum)]
 pub enum CursorStyle {
@@ -38,6 +43,14 @@ pub enum ScreenKind {
     Mode,
     /// An error and its choices (`error` is set).
     Error,
+    /// The Y= functions (`functions` is set).
+    Functions,
+    /// The WINDOW settings (`window` is set).
+    Window,
+    /// The graph (`graph` is set).
+    Graph,
+    /// A numbered menu (`menu` is set).
+    Menu,
 }
 
 /// An evaluated entry on the home screen.
@@ -103,6 +116,10 @@ pub struct Screen {
     pub home: Option<HomeScreen>,
     pub mode: Option<ModeScreen>,
     pub error: Option<ErrorScreen>,
+    pub functions: Option<FunctionsScreen>,
+    pub window: Option<WindowScreen>,
+    pub graph: Option<GraphScreen>,
+    pub menu: Option<MenuScreen>,
 }
 
 fn index(value: usize) -> u32 {
@@ -111,26 +128,55 @@ fn index(value: usize) -> u32 {
 
 impl From<calc_core::Screen<'_>> for Screen {
     fn from(screen: calc_core::Screen<'_>) -> Self {
-        let mut shown = Screen {
+        use calc_core::ScreenView;
+        let base = Screen {
             kind: ScreenKind::Home,
             status: screen.status.to_vec(),
             cursor_style: screen.cursor_style.into(),
             home: None,
             mode: None,
             error: None,
+            functions: None,
+            window: None,
+            graph: None,
+            menu: None,
         };
         match screen.view {
-            calc_core::ScreenView::Home(home) => shown.home = Some(home_screen(home)),
-            calc_core::ScreenView::Mode(mode) => {
-                shown.kind = ScreenKind::Mode;
-                shown.mode = Some(mode_screen(&mode));
-            }
-            calc_core::ScreenView::Error(error) => {
-                shown.kind = ScreenKind::Error;
-                shown.error = Some(error_screen(&error));
-            }
+            ScreenView::Home(home) => Screen {
+                home: Some(home_screen(home)),
+                ..base
+            },
+            ScreenView::Mode(mode) => Screen {
+                kind: ScreenKind::Mode,
+                mode: Some(mode_screen(&mode)),
+                ..base
+            },
+            ScreenView::Error(error) => Screen {
+                kind: ScreenKind::Error,
+                error: Some(error_screen(&error)),
+                ..base
+            },
+            ScreenView::Functions(functions) => Screen {
+                kind: ScreenKind::Functions,
+                functions: Some(functions_screen(&functions)),
+                ..base
+            },
+            ScreenView::Window(window) => Screen {
+                kind: ScreenKind::Window,
+                window: Some(window_screen(&window)),
+                ..base
+            },
+            ScreenView::Graph(graph) => Screen {
+                kind: ScreenKind::Graph,
+                graph: Some(graph_screen(&graph)),
+                ..base
+            },
+            ScreenView::Menu(menu) => Screen {
+                kind: ScreenKind::Menu,
+                menu: Some(menu_screen(&menu)),
+                ..base
+            },
         }
-        shown
     }
 }
 
