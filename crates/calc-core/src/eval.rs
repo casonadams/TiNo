@@ -1,5 +1,7 @@
 use std::f64::consts::{E, PI};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     error::{CalcError, ErrorKind},
     expr::{BinaryOp, Constant, Expr, Function, Postfix},
@@ -14,7 +16,7 @@ const OVERFLOW: f64 = 1e100;
 const UNDERFLOW: f64 = 1e-99;
 
 /// The values expressions read: variables `A`-`Z`, `θ` and `Ans`, all 0 at first.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Memory {
     variables: [f64; 27],
     ans: f64,

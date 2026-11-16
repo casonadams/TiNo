@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::error::{CalcError, ErrorKind};
 
 /// Columns of the graph area, in pixels of the color models' screen.
@@ -8,7 +10,7 @@ pub const GRAPH_ROWS: usize = 165;
 const MAX_TICKS: usize = 400;
 
 /// The WINDOW variables: the graph's ranges, tick spacing and resolution.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Window {
     pub x_min: f64,
     pub x_max: f64,

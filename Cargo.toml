@@ -11,6 +11,8 @@ publish = false
 [workspace.dependencies]
 calc-core = { path = "crates/calc-core" }
 nsh-core = "=0.5.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

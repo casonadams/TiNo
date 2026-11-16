@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 /// How results are written: positional where they fit, always scientific, or
 /// scientific with exponents that are multiples of 3.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Notation {
     #[default]
     Normal,
@@ -9,7 +11,7 @@ pub enum Notation {
 }
 
 /// How many decimals results show: as many as fit (Float) or exactly `n`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Decimals {
     #[default]
     Float,
@@ -17,7 +19,8 @@ pub enum Decimals {
 }
 
 /// A count of fixed decimal places, 0 to 9.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "u8", into = "u8")]
 pub struct FixedPlaces(u8);
 
 impl FixedPlaces {
@@ -33,8 +36,22 @@ impl FixedPlaces {
     }
 }
 
+impl TryFrom<u8> for FixedPlaces {
+    type Error = String;
+
+    fn try_from(places: u8) -> Result<Self, Self::Error> {
+        FixedPlaces::new(places).ok_or_else(|| format!("{places} fixed places is more than 9"))
+    }
+}
+
+impl From<FixedPlaces> for u8 {
+    fn from(places: FixedPlaces) -> Self {
+        places.0
+    }
+}
+
 /// The unit trigonometric functions take and inverse ones return.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Angle {
     #[default]
     Radian,
@@ -42,7 +59,7 @@ pub enum Angle {
 }
 
 /// The MODE settings this calculator honors.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Settings {
     pub notation: Notation,
     pub decimals: Decimals,

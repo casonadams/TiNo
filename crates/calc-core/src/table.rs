@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
     error::{CalcError, ErrorKind},
     field_editor::Field,
@@ -9,7 +11,7 @@ pub const TABLE_ROWS: usize = 8;
 pub const TABLE_FUNCTION_COLUMNS: usize = 3;
 
 /// TBLSET: the table's first X and the step between rows.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TableSettings {
     pub start: f64,
     pub step: f64,

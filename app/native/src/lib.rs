@@ -51,6 +51,20 @@ impl Calculator {
         Ok(self.screen())
     }
 
+    /// What the calculator keeps between sessions (memory, settings, Y=,
+    /// WINDOW, TBLSET, home screen, entries), as text `restore` reads.
+    pub fn save(&self) -> String {
+        self.core.save()
+    }
+
+    /// Becomes the calculator `save` wrote, on the home screen; the screen
+    /// after it. Throws, leaving this calculator as it was, for text that
+    /// is not a snapshot this version reads.
+    pub fn restore(&mut self, text: String) -> Result<Screen, String> {
+        self.core = calc_core::Calculator::load(&text).map_err(|e| e.to_string())?;
+        Ok(self.screen())
+    }
+
     /// Drags the graph by fractions of its width and height (positive `dx`
     /// shows more to the right, positive `dy` more above); the screen after
     /// it. Only on the graph.

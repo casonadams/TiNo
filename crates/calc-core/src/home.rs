@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+use serde::{Deserialize, Serialize};
+
 use crate::token::Token;
 
 /// Lines the home screen keeps, and entries 2nd ENTRY can recall; oldest
@@ -7,7 +9,7 @@ use crate::token::Token;
 const CAPACITY: usize = 50;
 
 /// How an evaluated entry shows: typeset as TeX, and its formatted result.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Output {
     pub latex: String,
     pub result: String,
@@ -56,6 +58,11 @@ pub struct EntryStack {
 }
 
 impl EntryStack {
+    /// The entries, oldest first.
+    pub fn entries(&self) -> &VecDeque<Vec<Token>> {
+        &self.entries
+    }
+
     pub fn push(&mut self, entry: Vec<Token>) {
         if self.entries.len() == CAPACITY {
             self.entries.pop_front();

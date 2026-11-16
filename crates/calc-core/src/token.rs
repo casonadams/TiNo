@@ -1,5 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 /// A named variable: `A` to `Z` and `θ`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Letter {
     A,
     B,
@@ -42,7 +44,7 @@ impl Letter {
 }
 
 /// A decimal digit, 0 to 9.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Digit {
     Zero,
     One,
@@ -57,7 +59,7 @@ pub enum Digit {
 }
 
 /// A built-in list, `L₁` to `L₆`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ListName {
     L1,
     L2,
@@ -68,7 +70,7 @@ pub enum ListName {
 }
 
 /// One unit of an entry: what one key press inserts and one DEL removes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Token {
     Digit(Digit),
     DecimalPoint,

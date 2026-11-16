@@ -33,7 +33,7 @@ pub mod window_editor;
 pub mod y_editor;
 pub mod zoom;
 
-pub use calculator::Calculator;
+pub use calculator::{Calculator, LoadError};
 pub use error::{CalcError, ErrorKind};
 pub use error_screen::ErrorChoice;
 pub use home::HistoryLine;

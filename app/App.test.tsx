@@ -1,7 +1,6 @@
 import { expect, open, test } from "nsh/test";
-import { Calculator } from "tino/native";
-import keypad from "./skins/color/keypad.json";
-import { keysOf, type KeypadLayout } from "./skins/skin";
+import { SKINS } from "./skins";
+import { keysOf } from "./skins/skin";
 
 test("keypad presses type tokens on the entry line", async () => {
   const app = await open("./App.tsx");
@@ -81,9 +80,29 @@ test("the computer keyboard presses calculator keys", async () => {
   expect(app.shows("label:4^")).toBe(false);
 });
 
-test("every key of the skin is a key the calculator knows", () => {
-  const calculator = new Calculator();
-  for (const spec of keysOf(keypad as KeypadLayout)) {
-    expect(() => calculator.press(spec.key)).not.toThrow();
+test("the calculator is kept between sessions", async () => {
+  const first = await open("./App.tsx");
+  for (const key of ["1", "2", "3", "enter", "mode", "down", "down", "right", "enter", "second", "mode"]) {
+    await first.press(`id:key-${key}`);
+  }
+  const second = await open("./App.tsx", { storage: first.storage() });
+  for (const text of ["123", "NORMAL FLOAT DEGREE"]) expect(second.texts()).toContain(text);
+});
+
+test("choosing a skin restyles the calculator and is kept between sessions", async () => {
+  const first = await open("./App.tsx");
+  const colorStatus = first.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
+  await first.press("id:skin-classic");
+  const classicStatus = first.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
+  expect(classicStatus).not.toBe(colorStatus);
+  const second = await open("./App.tsx", { storage: first.storage() });
+  await second.waitUntil(() => second.spanStyle("text:NORMAL FLOAT RADIAN")?.color === classicStatus);
+});
+
+test("every key of every skin is a key the calculator knows", async () => {
+  for (const skin of SKINS) {
+    const app = await open("./App.tsx");
+    await app.press(`id:skin-${skin.id}`);
+    for (const spec of keysOf(skin.keypad)) await app.press(`id:key-${spec.key}`);
   }
 });

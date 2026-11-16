@@ -5,9 +5,12 @@
 
 mod graph;
 mod home;
+mod persist;
 mod render;
 mod screens;
 mod table;
+
+pub use persist::LoadError;
 
 use crate::{
     editor::Editor,

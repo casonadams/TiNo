@@ -1,5 +1,8 @@
-import { signal } from "nsh";
+import { signal, Storage } from "nsh";
 import { Calculator, type GraphPoint, type Screen } from "tino/native";
+
+/** The storage key the calculator is kept under between sessions. */
+const CALCULATOR_KEY = "tino.calculator";
 
 const calculator = new Calculator();
 const screen = signal<Screen>(calculator.screen);
@@ -7,19 +10,36 @@ const screen = signal<Screen>(calculator.screen);
 /** What the calculator's screen shows (tracked where it is read). */
 export const currentScreen = (): Screen => screen();
 
+/** Shows `next` and keeps the calculator for the next session. */
+function show(next: Screen): void {
+  screen.set(next);
+  void Storage.setItem(CALCULATOR_KEY, calculator.save());
+}
+
+/** Brings back the calculator the last session kept; a kept one this version cannot read is replaced. */
+export async function restoreCalculator(): Promise<void> {
+  const kept = await Storage.getItem(CALCULATOR_KEY);
+  if (kept === null) return;
+  try {
+    screen.set(calculator.restore(kept));
+  } catch (error) {
+    console.warn(`starting a new calculator: ${error}`);
+  }
+}
+
 /** Presses the key with id `key`, as the keypad and the keyboard do. */
 export function press(key: string): void {
-  screen.set(calculator.press(key));
+  show(calculator.press(key));
 }
 
 /** Drags the graph by fractions of its size (positive `dx` shows more to the right, `dy` more above). */
 export function panGraph(dx: number, dy: number): void {
-  screen.set(calculator.panGraph(dx, dy));
+  show(calculator.panGraph(dx, dy));
 }
 
 /** Zooms the graph in by `factor` (out below 1) about `anchor`, fractions from the left and bottom. */
 export function zoomGraph(factor: number, anchor: GraphPoint): void {
-  screen.set(calculator.zoomGraph(factor, anchor));
+  show(calculator.zoomGraph(factor, anchor));
 }
 
 /** Traces at `fraction` of the graph's width from the left. */
