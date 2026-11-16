@@ -1,5 +1,5 @@
 use crate::support::{entry_text, home, press, pressed, results};
-use calc_core::{ErrorChoice, Key, ScreenView};
+use calc_core::{ErrorChoice, Key, ScreenView, home::HistoryPart};
 
 const ALPHA_A: [Key; 2] = [Key::Alpha, Key::Math];
 const ENTRY: [Key; 2] = [Key::Second, Key::Enter];
@@ -132,4 +132,43 @@ fn clear_on_an_empty_line_clears_the_screen() {
     assert_eq!(results(&calculator), ["1"]);
     press(&mut calculator, &[Key::Clear]);
     assert!(home(&calculator).history.is_empty());
+}
+
+#[test]
+fn up_highlights_history_and_enter_types_the_highlighted_part() {
+    let mut calculator = pressed(&[Key::Digit1, Key::Divide, Key::Digit4, Key::Enter]);
+    press(&mut calculator, &[Key::Digit2, Key::Add, Key::Up]);
+    let selected = home(&calculator).selected.expect("a part is highlighted");
+    assert_eq!((selected.line, selected.part), (0, HistoryPart::Result));
+    press(&mut calculator, &[Key::Enter]);
+    assert_eq!(entry_text(&calculator), "2+.25");
+    press(
+        &mut calculator,
+        &[Key::Add, Key::Up, Key::Up, Key::Up, Key::Enter],
+    );
+    assert_eq!(entry_text(&calculator), "2+.25+1÷4");
+    assert_eq!(home(&calculator).selected, None);
+}
+
+#[test]
+fn down_past_the_newest_result_or_clear_returns_to_the_entry_line() {
+    let mut calculator = pressed(&[Key::Digit5, Key::Enter, Key::Up, Key::Down]);
+    assert_eq!(home(&calculator).selected, None);
+    press(&mut calculator, &[Key::Up, Key::Clear, Key::Digit7]);
+    assert_eq!(entry_text(&calculator), "7");
+    assert_eq!(results(&calculator), ["5"]);
+}
+
+#[test]
+fn goto_after_an_evaluation_error_puts_the_cursor_on_the_failing_operation() {
+    let mut calculator = pressed(&[
+        Key::Digit1,
+        Key::Add,
+        Key::Digit1,
+        Key::Divide,
+        Key::Digit0,
+        Key::Enter,
+    ]);
+    press(&mut calculator, &[Key::Digit2]);
+    assert_eq!(home(&calculator).cursor, 3);
 }

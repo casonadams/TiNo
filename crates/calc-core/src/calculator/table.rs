@@ -13,7 +13,7 @@ use crate::{
 impl Calculator {
     /// The TBLSET cursor on `field`, showing its value.
     pub(super) fn table_setup_cursor(&self, field: TableField) -> FieldCursor<TableField> {
-        FieldCursor::new(field, field.get(&self.table), self.settings)
+        FieldCursor::new(field, field.get(&self.table))
     }
 
     pub(super) fn perform_table_setup(

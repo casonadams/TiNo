@@ -1,7 +1,36 @@
-use crate::settings::{Decimals, Notation, Settings};
+use crate::{
+    settings::{Decimals, Notation, Settings},
+    token::{Digit, Token},
+    vocabulary::Operator,
+};
 
 /// Significant digits a result shows at most.
 const DIGITS: i32 = 10;
+
+/// The tokens that type a formatted result (`⁻1.5ᴇ3`, `⁻3/4`).
+pub fn result_tokens(text: &str) -> Vec<Token> {
+    const DIGITS: [Digit; 10] = [
+        Digit::Zero,
+        Digit::One,
+        Digit::Two,
+        Digit::Three,
+        Digit::Four,
+        Digit::Five,
+        Digit::Six,
+        Digit::Seven,
+        Digit::Eight,
+        Digit::Nine,
+    ];
+    text.chars()
+        .filter_map(|c| match c {
+            '.' => Some(Token::DecimalPoint),
+            '⁻' => Some(Token::Negate),
+            'ᴇ' => Some(Token::Exponent),
+            '/' => Some(Token::Op(Operator::Divide)),
+            c => c.to_digit(10).map(|d| Token::Digit(DIGITS[d as usize])),
+        })
+        .collect()
+}
 
 /// A result as the calculator shows it under `settings`: at most 10
 /// significant digits, no leading zero (`.5`), `⁻` for negatives. Normal

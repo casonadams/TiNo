@@ -19,7 +19,7 @@ use crate::{
     eval::{Context, Memory},
     field_editor::FieldCursor,
     functions::Functions,
-    home::{EntryStack, History},
+    home::{EntryStack, History, HistorySelection},
     key::Key,
     keymap::{self, Action, Command},
     list_menu::ListMenu,
@@ -38,9 +38,7 @@ use crate::{
 /// The screen being shown, with its own state.
 #[derive(Debug, Clone)]
 enum View {
-    /// The home screen, with how far back 2nd ENTRY last reached while it
-    /// keeps being pressed.
-    Home(Option<usize>),
+    Home(HomeState),
     Mode(ModeCursor),
     Error(ErrorMenu),
     Functions(YCursor),
@@ -61,7 +59,19 @@ struct OpenMenu {
     under: Box<View>,
 }
 
-const HOME: View = View::Home(None);
+/// The home screen's state between key presses.
+#[derive(Debug, Clone, Copy, Default)]
+struct HomeState {
+    /// How far back 2nd ENTRY last reached while it keeps being pressed.
+    recalled: Option<usize>,
+    /// The history entry or result ▲ ▼ highlight.
+    selected: Option<HistorySelection>,
+}
+
+const HOME: View = View::Home(HomeState {
+    recalled: None,
+    selected: None,
+});
 
 impl Default for View {
     fn default() -> Self {

@@ -3,14 +3,19 @@ import { TextView } from "nsh/base";
 import type { CursorStyle, HistoryLine, HomeScreen } from "tino/native";
 import { EntryLine } from "../EntryLine";
 
-/** An evaluated entry: typeset on the left, its result on the right below it. */
+/** An evaluated entry: typeset on the left, its result on the right below it; the half ▲ ▼ highlight is outlined. */
 function HistoryRow(props: { line: () => HistoryLine }) {
+  const outline = (selected: boolean) => `rounded-sm border-2 px-0.5 ${selected ? "border-lcd-accent" : "border-lcd"}`;
   return (
     <View class="gap-0.5">
-      <TextView markdown={`$${props.line().latex}$`} class="text-lg text-lcd-foreground" />
-      <Text class="text-lcd-foreground self-end" style={{ fontSize: 22 }}>
-        {props.line().result}
-      </Text>
+      <View class={`self-start ${outline(props.line().entrySelected)}`}>
+        <TextView markdown={`$${props.line().latex}$`} class="text-lg text-lcd-foreground" />
+      </View>
+      <View class={`self-end ${outline(props.line().resultSelected)}`}>
+        <Text class="text-lcd-foreground" style={{ fontSize: 22 }}>
+          {props.line().result}
+        </Text>
+      </View>
     </View>
   );
 }

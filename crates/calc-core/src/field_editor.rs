@@ -2,11 +2,10 @@ use crate::{
     editor::Editor,
     error::{CalcError, ErrorKind},
     eval::Context,
-    format::format_real,
+    format::{format_real, result_tokens},
     keymap::{Action, Command},
     parse::parse,
     settings::Settings,
-    token::{Digit, Token},
 };
 
 /// A line of a settings screen (WINDOW, TBLSET) whose value is typed as an
@@ -28,10 +27,11 @@ pub struct FieldCursor<F> {
 }
 
 impl<F: Field> FieldCursor<F> {
-    /// On `field`, its entry showing `value` as the calculator writes it.
-    pub fn new(field: F, value: f64, settings: Settings) -> Self {
+    /// On `field`, its entry showing `value` in Normal Float, whatever the
+    /// mode, so the field holds every digit it has.
+    pub fn new(field: F, value: f64) -> Self {
         let mut editor = Editor::default();
-        editor.replace(number_tokens(&format_real(value, settings)));
+        editor.replace(result_tokens(&format_real(value, Settings::default())));
         editor.place_cursor(0);
         FieldCursor { field, editor }
     }
@@ -75,33 +75,10 @@ impl<F: Field> FieldCursor<F> {
     }
 }
 
-/// The tokens that type a formatted number (`⁻1.5ᴇ3`).
-fn number_tokens(text: &str) -> Vec<Token> {
-    const DIGITS: [Digit; 10] = [
-        Digit::Zero,
-        Digit::One,
-        Digit::Two,
-        Digit::Three,
-        Digit::Four,
-        Digit::Five,
-        Digit::Six,
-        Digit::Seven,
-        Digit::Eight,
-        Digit::Nine,
-    ];
-    text.chars()
-        .filter_map(|c| match c {
-            '.' => Some(Token::DecimalPoint),
-            '⁻' => Some(Token::Negate),
-            'ᴇ' => Some(Token::Exponent),
-            c => c.to_digit(10).map(|d| Token::Digit(DIGITS[d as usize])),
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::token::Token;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum Probe {
@@ -124,19 +101,19 @@ mod tests {
 
     #[test]
     fn a_field_opens_with_its_value_typed_out() {
-        let cursor = FieldCursor::new(Probe::First, -1.5e-3, Settings::default());
+        let cursor = FieldCursor::new(Probe::First, -1.5e-3);
         assert_eq!(text(&cursor), "⁻.0015");
-        let tiny = FieldCursor::new(Probe::First, -1.5e-9, Settings::default());
+        let tiny = FieldCursor::new(Probe::First, -1.5e-9);
         assert_eq!(text(&tiny), "⁻1.5ᴇ⁻9");
     }
 
     #[test]
     fn the_entry_evaluates_as_an_expression_and_empty_keeps_the_value() {
-        let mut cursor = FieldCursor::new(Probe::First, 0.0, Settings::default());
+        let mut cursor = FieldCursor::new(Probe::First, 0.0);
         cursor.editor.replace(vec![
             Token::Pi,
             Token::Op(crate::vocabulary::Operator::Divide),
-            Token::Digit(Digit::Two),
+            Token::Digit(crate::token::Digit::Two),
         ]);
         let context = Context {
             memory: &crate::eval::Memory::default(),
@@ -153,7 +130,7 @@ mod tests {
 
     #[test]
     fn fields_stop_at_the_ends() {
-        let cursor = FieldCursor::new(Probe::Last, 0.0, Settings::default());
+        let cursor = FieldCursor::new(Probe::Last, 0.0);
         assert_eq!(cursor.neighbor(true), Probe::Last);
         assert_eq!(cursor.neighbor(false), Probe::First);
     }

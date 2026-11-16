@@ -1,7 +1,11 @@
 use std::collections::VecDeque;
 
 use crate::{
-    error_screen::ErrorChoice, home::HistoryLine, mode_screen::ModeRow, plot::Plot, token::Token,
+    error_screen::ErrorChoice,
+    home::{HistoryLine, HistorySelection},
+    mode_screen::ModeRow,
+    plot::Plot,
+    token::Token,
     window::Window,
 };
 
@@ -46,12 +50,14 @@ pub enum ScreenView<'a> {
     Menu(MenuView),
 }
 
-/// The home screen: evaluated entries over the entry line.
+/// The home screen: evaluated entries over the entry line, with the entry
+/// or result ▲ ▼ highlight.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HomeView<'a> {
     pub history: &'a VecDeque<HistoryLine>,
     pub entry: &'a [Token],
     pub cursor: usize,
+    pub selected: Option<HistorySelection>,
 }
 
 /// The MODE screen: a row per setting.

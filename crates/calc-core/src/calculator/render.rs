@@ -26,10 +26,11 @@ impl Calculator {
             status: self.settings.labels(),
             cursor_style: self.cursor_style(),
             view: match &self.view {
-                View::Home(_) => ScreenView::Home(HomeView {
+                View::Home(state) => ScreenView::Home(HomeView {
                     history: self.history.lines(),
                     entry: self.editor.tokens(),
                     cursor: self.editor.cursor(),
+                    selected: state.selected,
                 }),
                 View::Mode(cursor) => ScreenView::Mode(self.mode_view(*cursor)),
                 View::Error(menu) => ScreenView::Error(error_view(menu)),
@@ -83,8 +84,8 @@ impl Calculator {
         }
     }
 
-    /// A settings screen: each field's value from `value`, the focused
-    /// one's entry instead.
+    /// A settings screen: each field's value from `value` in Normal Float,
+    /// whatever the mode, the focused one's entry instead.
     fn fields_view<'a, F: Field>(
         &self,
         cursor: &'a FieldCursor<F>,
@@ -92,7 +93,7 @@ impl Calculator {
     ) -> FieldsView<'a> {
         let rows = F::ALL.iter().map(|&field| FieldRowView {
             label: field.label(),
-            value: format_real(value(field), self.settings),
+            value: format_real(value(field), crate::settings::Settings::default()),
             editing: (field == cursor.field)
                 .then(|| (cursor.editor.tokens(), cursor.editor.cursor())),
         });

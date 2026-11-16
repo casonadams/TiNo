@@ -1,9 +1,9 @@
-use super::{Calculator, HOME, View, error_view};
+use super::{Calculator, HOME, HomeState, View, error_view};
 use crate::{
     error::CalcError,
     error_screen::ErrorOrigin,
     format::{format_fraction, format_real},
-    home::Output,
+    home::{HistorySelection, Output},
     keymap::{Action, Command, Edit},
     latex,
     parse::parse,
@@ -12,16 +12,46 @@ use crate::{
 };
 
 impl Calculator {
-    pub(super) fn perform_home(&mut self, action: Action, recalled: Option<usize>) -> View {
+    pub(super) fn perform_home(&mut self, action: Action, state: HomeState) -> View {
+        if let Some(selected) = state.selected {
+            return self.perform_selection(selected, action);
+        }
         match action {
             Action::Insert(token) => self.insert(token),
             Action::Edit(Edit::Clear) if self.editor.tokens().is_empty() => self.history.clear(),
             Action::Edit(edit) => self.editor.apply(edit),
             Action::Command(Command::Enter) => return self.enter(),
-            Action::Command(Command::Entry) => return View::Home(self.recall_entry(recalled)),
+            Action::Command(Command::Entry) => {
+                let recalled = self.recall_entry(state.recalled);
+                return View::Home(HomeState {
+                    recalled,
+                    selected: None,
+                });
+            }
+            Action::Command(Command::Up) => {
+                return selecting(HistorySelection::newest(self.history.lines().len()));
+            }
             Action::Command(_) => {}
         }
         HOME
+    }
+
+    /// With a history entry or result highlighted: ▲ ▼ move the highlight,
+    /// ENTER types it at the cursor, CLEAR drops the highlight; any other
+    /// key drops it and acts as usual.
+    fn perform_selection(&mut self, selected: HistorySelection, action: Action) -> View {
+        match action {
+            Action::Command(Command::Up) => selecting(Some(selected.up())),
+            Action::Command(Command::Down) => selecting(selected.down(self.history.lines().len())),
+            Action::Command(Command::Enter) => {
+                for token in self.history.pasted(selected) {
+                    self.editor.type_token(token);
+                }
+                HOME
+            }
+            Action::Edit(Edit::Clear) => HOME,
+            _ => self.perform_home(action, HomeState::default()),
+        }
     }
 
     /// Types `token`; an operator typed first on the line applies to `Ans`.
@@ -63,6 +93,7 @@ impl Calculator {
             _ => format_real(value, self.settings),
         };
         Ok(Output {
+            entry: entry.to_vec(),
             latex: latex::statement(&statement),
             result,
         })
@@ -76,4 +107,11 @@ impl Calculator {
         self.editor.replace(entry.to_vec());
         Some(back)
     }
+}
+
+fn selecting(selected: Option<HistorySelection>) -> View {
+    View::Home(HomeState {
+        recalled: None,
+        selected,
+    })
 }

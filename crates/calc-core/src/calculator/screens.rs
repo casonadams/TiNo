@@ -75,7 +75,7 @@ impl Calculator {
 
     /// The WINDOW cursor on `field`, showing its value.
     pub(super) fn window_cursor(&self, field: WindowField) -> FieldCursor<WindowField> {
-        FieldCursor::new(field, field.get(&self.window), self.settings)
+        FieldCursor::new(field, field.get(&self.window))
     }
 
     pub(super) fn perform_window(

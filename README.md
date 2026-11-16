@@ -11,7 +11,8 @@ Texas Instruments.
 
 - **Home screen**: TI-style token entry (`sin(` is one token), 2nd and ALPHA (2nd ALPHA locks), overwrite and insert
   editing, the calculator's precedence (implied multiplication, `⁻2²` is ⁻4, `^` groups left to right), Ans, `→`
-  into A–Z and θ, ENTER to repeat, 2nd ENTRY to recall, typeset entries with Float/Fix/Sci/Eng results.
+  into A–Z and θ, ENTER to repeat, 2nd ENTRY to recall, ▲ ▼ to highlight an earlier entry or result and ENTER to
+  type it at the cursor, typeset entries with Float/Fix/Sci/Eng results.
 - **MATH, 2nd TEST and VARS menus**: ►Frac, ►Dec, ³, ³√(, ˣ√, fMin(, fMax(, nDeriv(, fnInt(, Σ(, logBASE(;
   abs(, round(, iPart(, fPart(, int(, min(, max(, lcm(, gcd(, remainder(; rand, nPr, nCr, !, randInt(; = ≠ > ≥ < ≤;
   and, or, xor, not(; the WINDOW and TBLSET settings and Y₁–Y₀ (`Y₁(3)` evaluates Y₁ at 3). ◀ ▶ switch tabs, ▲ ▼

@@ -1,5 +1,6 @@
 //! The screen as JS values: one object with the shown screen's part set.
 
+use calc_core::home::{HistoryPart, HistorySelection};
 use nsh_core::prelude::*;
 
 use crate::graphing::{
@@ -64,6 +65,10 @@ pub struct HistoryLine {
     pub latex: String,
     /// The result as the calculator formats it.
     pub result: String,
+    /// Whether ▲ ▼ highlight the entry.
+    pub entry_selected: bool,
+    /// Whether ▲ ▼ highlight the result.
+    pub result_selected: bool,
 }
 
 /// The home screen.
@@ -190,11 +195,19 @@ impl From<calc_core::Screen<'_>> for Screen {
 }
 
 fn home_screen(home: calc_core::HomeView<'_>) -> HomeScreen {
-    let history = home.history.iter().map(|line| HistoryLine {
-        id: line.id,
-        latex: line.output.latex.clone(),
-        result: line.output.result.clone(),
-    });
+    let selected =
+        |line: usize, part: HistoryPart| home.selected == Some(HistorySelection { line, part });
+    let history = home
+        .history
+        .iter()
+        .enumerate()
+        .map(|(index, line)| HistoryLine {
+            id: line.id,
+            latex: line.output.latex.clone(),
+            result: line.output.result.clone(),
+            entry_selected: selected(index, HistoryPart::Entry),
+            result_selected: selected(index, HistoryPart::Result),
+        });
     HomeScreen {
         history: history.collect(),
         entry: home.entry.iter().map(|t| t.text().to_owned()).collect(),

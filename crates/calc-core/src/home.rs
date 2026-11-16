@@ -2,17 +2,78 @@ use std::collections::VecDeque;
 
 use serde::{Deserialize, Serialize};
 
-use crate::token::Token;
+use crate::{format::result_tokens, token::Token};
 
 /// Lines the home screen keeps, and entries 2nd ENTRY can recall; oldest
 /// dropped first.
 const CAPACITY: usize = 50;
 
-/// How an evaluated entry shows: typeset as TeX, and its formatted result.
+/// How an evaluated entry shows: typeset as TeX, and its formatted result;
+/// with the entry's tokens, for ▲ ▼ to paste back.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Output {
+    #[serde(default)]
+    pub entry: Vec<Token>,
     pub latex: String,
     pub result: String,
+}
+
+/// The half of a history line ▲ ▼ highlight.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HistoryPart {
+    Entry,
+    Result,
+}
+
+/// A highlighted entry or result in the history; `line` counts from the
+/// oldest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HistorySelection {
+    pub line: usize,
+    pub part: HistoryPart,
+}
+
+impl HistorySelection {
+    /// ▲ from the entry line: the newest result, if any.
+    pub fn newest(lines: usize) -> Option<Self> {
+        let line = lines.checked_sub(1)?;
+        Some(HistorySelection {
+            line,
+            part: HistoryPart::Result,
+        })
+    }
+
+    /// ▲: the entry above a result, or the result above an entry; the
+    /// oldest entry stays.
+    pub fn up(self) -> Self {
+        match (self.part, self.line) {
+            (HistoryPart::Result, line) => HistorySelection {
+                line,
+                part: HistoryPart::Entry,
+            },
+            (HistoryPart::Entry, 0) => self,
+            (HistoryPart::Entry, line) => HistorySelection {
+                line: line - 1,
+                part: HistoryPart::Result,
+            },
+        }
+    }
+
+    /// ▼: the part below in a history of `lines` lines; `None` past the
+    /// newest result, back on the entry line.
+    pub fn down(self, lines: usize) -> Option<Self> {
+        match self.part {
+            HistoryPart::Entry => Some(HistorySelection {
+                part: HistoryPart::Result,
+                ..self
+            }),
+            HistoryPart::Result if self.line + 1 < lines => Some(HistorySelection {
+                line: self.line + 1,
+                part: HistoryPart::Entry,
+            }),
+            HistoryPart::Result => None,
+        }
+    }
 }
 
 /// One evaluated entry on the home screen.
@@ -48,6 +109,17 @@ impl History {
 
     pub fn clear(&mut self) {
         self.lines.clear();
+    }
+
+    /// The tokens that type the selected entry or result.
+    pub fn pasted(&self, selection: HistorySelection) -> Vec<Token> {
+        let Some(line) = self.lines.get(selection.line) else {
+            return Vec::new();
+        };
+        match selection.part {
+            HistoryPart::Entry => line.output.entry.clone(),
+            HistoryPart::Result => result_tokens(&line.output.result),
+        }
     }
 }
 
@@ -104,6 +176,7 @@ mod tests {
         let mut history = History::default();
         for _ in 0..CAPACITY + 2 {
             history.push(Output {
+                entry: digit(Digit::Five),
                 latex: "5".into(),
                 result: "5".into(),
             });

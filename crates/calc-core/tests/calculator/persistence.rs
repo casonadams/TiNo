@@ -72,7 +72,7 @@ fn a_reloaded_calculator_keeps_its_functions_window_and_table_settings() {
     };
     assert_eq!((graph.window.x_max, graph.plot.curves.len()), (20.0, 1));
     press(&mut loaded, &[Key::Second, Key::Window]);
-    assert_eq!(field_value(&loaded, "TblStart"), "3.00");
+    assert_eq!(field_value(&loaded, "TblStart"), "3");
 }
 
 #[test]

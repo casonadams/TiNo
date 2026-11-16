@@ -5,17 +5,17 @@ use crate::{
     vocabulary::Function,
 };
 
-/// `sin`, `cos` or `tan` of `x` in `angle` units. In degrees, multiples of
-/// 90° are exact (`sin(180)` is 0) and `tan` of an odd multiple is a domain
-/// error, as on the calculator.
+/// `sin`, `cos` or `tan` of `x` in `angle` units. Multiples of 90° (π/2 in
+/// radians, to within rounding of π) are exact (`sin(π)` is 0) and `tan` of
+/// an odd multiple is a domain error, as on the calculator.
 pub fn forward(function: Function, x: f64, angle: Angle) -> Result<f64, CalcError> {
-    let radians = match angle {
-        Angle::Radian => x,
-        Angle::Degree => match right_angle_quadrant(x) {
-            Some(quadrant) => return exact(function, quadrant),
-            None => x.to_radians(),
-        },
+    let (quadrant, radians) = match angle {
+        Angle::Radian => (radian_quadrant(x), x),
+        Angle::Degree => (right_angle_quadrant(x), x.to_radians()),
     };
+    if let Some(quadrant) = quadrant {
+        return exact(function, quadrant);
+    }
     Ok(match function {
         Function::Sin => radians.sin(),
         Function::Cos => radians.cos(),
@@ -41,6 +41,16 @@ pub fn inverse(function: Function, x: f64, angle: Angle) -> Result<f64, CalcErro
 fn right_angle_quadrant(degrees: f64) -> Option<u8> {
     let turn = degrees.rem_euclid(360.0);
     (turn % 90.0 == 0.0).then(|| (turn / 90.0) as u8)
+}
+
+/// Which multiple of π/2 `radians` is, modulo 4, allowing the rounding a
+/// nonzero multiple of π picks up (0 itself is exact, so `sin(1ᴇ⁻²⁰)` keeps
+/// its value); `None` when it is none.
+fn radian_quadrant(radians: f64) -> Option<u8> {
+    let quarters = radians / std::f64::consts::FRAC_PI_2;
+    let nearest = quarters.round();
+    let close = (quarters - nearest).abs() <= 1e-13 * nearest.abs();
+    close.then(|| nearest.rem_euclid(4.0) as u8)
 }
 
 fn exact(function: Function, quadrant: u8) -> Result<f64, CalcError> {
@@ -72,6 +82,26 @@ mod tests {
             let value = forward(function, degrees, Angle::Degree).map_err(|e| e.kind);
             assert_eq!(value, expected, "{function:?}({degrees})");
         }
+    }
+
+    #[test]
+    fn radians_are_exact_at_multiples_of_a_right_angle() {
+        use std::f64::consts::{FRAC_PI_2, PI};
+        let cases = [
+            (Function::Sin, PI, Ok(0.0)),
+            (Function::Sin, 3.0 * PI, Ok(0.0)),
+            (Function::Cos, FRAC_PI_2, Ok(0.0)),
+            (Function::Cos, -PI, Ok(-1.0)),
+            (Function::Sin, -FRAC_PI_2, Ok(-1.0)),
+            (Function::Tan, FRAC_PI_2, Err(ErrorKind::Domain)),
+        ];
+        for (function, radians, expected) in cases {
+            let value = forward(function, radians, Angle::Radian).map_err(|e| e.kind);
+            assert_eq!(value, expected, "{function:?}({radians})");
+        }
+        let near = forward(Function::Sin, PI + 1e-9, Angle::Radian).unwrap();
+        assert!((near + 1e-9).abs() < 1e-15);
+        assert_eq!(forward(Function::Sin, 1e-20, Angle::Radian), Ok(1e-20));
     }
 
     #[test]
