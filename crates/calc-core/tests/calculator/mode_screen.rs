@@ -1,5 +1,5 @@
 use crate::support::{press, pressed, results};
-use calc_core::{Calculator, Key, ModeRow, ScreenView};
+use calc_core::{Calculator, Key, ScreenView};
 
 const QUIT: [Key; 2] = [Key::Second, Key::Mode];
 
@@ -21,14 +21,14 @@ fn the_mode_screen_shows_each_setting_with_the_cursor_on_the_first_row() {
     let rows: Vec<_> = mode
         .rows
         .iter()
-        .map(|r| (r.row, r.selected, r.highlighted))
+        .map(|r| (r.options[0], r.selected, r.highlighted))
         .collect();
     assert_eq!(
         rows,
         [
-            (ModeRow::Notation, 0, Some(0)),
-            (ModeRow::Decimals, 0, None),
-            (ModeRow::Angle, 0, None),
+            ("NORMAL", 0, Some(0)),
+            ("FLOAT", 0, None),
+            ("RADIAN", 0, None),
         ]
     );
 }

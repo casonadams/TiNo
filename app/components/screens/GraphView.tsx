@@ -94,7 +94,7 @@ export function GraphView(props: { graph: () => GraphScreen; cursorStyle: () => 
           pinch.set(1);
         }}
       />
-      <If when={props.graph().trace}>
+      <If when={props.graph().expression ? props.graph().trace : undefined}>
         {(trace) => (
           <Text
             class="font-mono text-lcd-foreground"
@@ -107,14 +107,14 @@ export function GraphView(props: { graph: () => GraphScreen; cursorStyle: () => 
       </If>
       <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
         <If when={props.graph().calc}>{(calc) => <CalcLine calc={calc} cursorStyle={props.cursorStyle} />}</If>
-        <If when={props.graph().trace}>
-          {(trace) => (
+        <If when={props.graph().trace ?? (props.graph().coordinates ? props.graph().free : undefined)}>
+          {(point) => (
             <View class="flex-row justify-between">
               <Text class="font-mono text-lcd-foreground" style={small()}>
-                {trace().xText}
+                {point().xText}
               </Text>
               <Text class="font-mono text-lcd-foreground" style={small()}>
-                {trace().yText}
+                {point().yText}
               </Text>
             </View>
           )}

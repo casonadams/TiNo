@@ -19,12 +19,13 @@ Texas Instruments.
   and ENTER or an item's key pick; they type into the home screen, Y= or a WINDOW/TBLSET field.
 - **MODE**: Normal, Sci, Eng; Float or Fix 0–9; Radian or Degree.
 - **Errors**: an error screen with Quit and Goto (back to the token at fault).
-- **Graphing**: ten Y= functions, WINDOW, ZOOM (Zoom In/Out, ZDecimal, ZSquare, ZStandard, ZTrig, ZoomFit), TRACE;
-  drag to pan, wheel or pinch to zoom, tap to trace.
+- **Graphing**: ten Y= functions, WINDOW, ZOOM (ZBox, Zoom In/Out, ZDecimal, ZSquare, ZStandard, ZTrig, ZoomFit),
+  TRACE, a free cursor on the arrow keys, and FORMAT (2nd ZOOM: CoordOn/Off, GridOff/Dot/Line, AxesOn/Off,
+  LabelOff/On, ExprOn/Off); drag to pan, wheel or pinch to zoom, tap to trace.
 - **CALC (2nd TRACE)**: value, zero, minimum, maximum, intersect, dy/dx and ∫f(x)dx (shaded); mark bounds, curves
   and guesses with the trace cursor and ENTER.
 - **TABLE and TBLSET**: X from TblStart by ΔTbl beside the graphed functions; wheel or drag to scroll.
-- **Kept between visits**: memory, settings, functions, window, table settings, history and the chosen skin, in the
+- **Kept between visits**: memory, settings, functions, window, table and FORMAT settings, history and the skin, in the
   browser's local storage.
 - **Settings (ON)**: ON opens a settings screen to pick the skin, Color (the default) or Classic; tap one or use
   ▲ ▼, then ON, CLEAR or ENTER to return.

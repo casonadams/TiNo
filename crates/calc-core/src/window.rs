@@ -69,6 +69,23 @@ impl Window {
         self.x_min + (self.x_max - self.x_min) * column as f64 / (GRAPH_COLUMNS - 1) as f64
     }
 
+    /// The y of graph row `row` (0 is `y_min`, the last is `y_max`).
+    pub fn row_y(&self, row: usize) -> f64 {
+        self.y_min + (self.y_max - self.y_min) * row as f64 / (GRAPH_ROWS - 1) as f64
+    }
+
+    /// ZBox: the window spanning the box between two corners, ticks and
+    /// resolution kept; `None` when the box has no width or height.
+    pub fn boxed(self, (x1, y1): (f64, f64), (x2, y2): (f64, f64)) -> Option<Self> {
+        (x1 != x2 && y1 != y2).then(|| Window {
+            x_min: x1.min(x2),
+            x_max: x1.max(x2),
+            y_min: y1.min(y2),
+            y_max: y1.max(y2),
+            ..self
+        })
+    }
+
     /// The window moved by fractions of its width and height (positive `dx`
     /// shows more to the right, positive `dy` more above).
     pub fn panned(self, dx: f64, dy: f64) -> Self {

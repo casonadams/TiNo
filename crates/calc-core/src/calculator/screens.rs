@@ -5,7 +5,6 @@ use crate::{
     keymap::{Action, Command, Edit},
     list_menu::ListMenu,
     menus::{MenuCursor, menu_key},
-    mode_screen::ModeCursor,
     token::{Digit, Token},
     window_editor::WindowField,
     y_editor::YCursor,
@@ -13,22 +12,6 @@ use crate::{
 };
 
 impl Calculator {
-    pub(super) fn perform_mode(&mut self, cursor: ModeCursor, action: Action) -> View {
-        let cursor = match action {
-            Action::Edit(Edit::Clear) => return HOME,
-            Action::Command(Command::Up) => cursor.step_row(false, self.settings),
-            Action::Command(Command::Down) => cursor.step_row(true, self.settings),
-            Action::Edit(Edit::Left) => cursor.step_column(false),
-            Action::Edit(Edit::Right) => cursor.step_column(true),
-            Action::Command(Command::Enter) => {
-                cursor.choose(&mut self.settings);
-                cursor
-            }
-            _ => cursor,
-        };
-        View::Mode(cursor)
-    }
-
     pub(super) fn perform_error(&mut self, menu: ErrorMenu, action: Action) -> View {
         let choice = match action {
             Action::Command(Command::Up | Command::Down) => return View::Error(menu.toggled()),

@@ -92,6 +92,7 @@ fn zoom_menu_items_change_the_window_and_show_the_graph() {
             Key::Down,
             Key::Down,
             Key::Down,
+            Key::Down,
             Key::Enter,
         ],
     );

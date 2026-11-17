@@ -1,6 +1,10 @@
-use super::{Calculator, HOME, View, error_view};
+use super::{
+    Calculator, HOME, View, error_view,
+    free::{BoxMarking, arrow_step},
+};
 use crate::{
     error_screen::ErrorOrigin,
+    free_cursor::FreeCursor,
     keymap::{Action, Command, Edit},
     plot::{plot, y_extent},
     trace::TraceCursor,
@@ -32,8 +36,9 @@ impl Calculator {
 
     pub(super) fn perform_graph(&mut self, trace: Option<TraceCursor>, action: Action) -> View {
         let Some(cursor) = trace else {
-            return match action {
-                Action::Edit(Edit::Clear) => HOME,
+            return match (action, arrow_step(action)) {
+                (Action::Edit(Edit::Clear), _) => HOME,
+                (_, Some(step)) => View::FreeGraph(FreeCursor::center().stepped(step)),
                 _ => View::Graph(None),
             };
         };
@@ -62,7 +67,8 @@ impl Calculator {
         self.functions.graphed().collect()
     }
 
-    /// A ZOOM menu item: the new window, then the graph.
+    /// A ZOOM menu item: the new window, then the graph; ZBox goes to the
+    /// graph to mark its corners.
     pub(super) fn zoom(&mut self, item: ZoomItem) -> View {
         let fit = match item {
             ZoomItem::ZoomFit => match self.functions.parse_graphed() {
@@ -75,7 +81,16 @@ impl Calculator {
             angle: self.settings.angle,
             fit,
         };
-        self.window = zoom::apply(item, self.window, context);
+        let Some(window) = zoom::apply(item, self.window, context) else {
+            return match self.graph(false) {
+                View::Graph(_) => View::ZBox(BoxMarking {
+                    corner: None,
+                    cursor: FreeCursor::center(),
+                }),
+                other => other,
+            };
+        };
+        self.window = window;
         self.graph(false)
     }
 

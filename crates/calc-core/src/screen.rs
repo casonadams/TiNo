@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 
 use crate::{
     error_screen::ErrorChoice,
+    graph_format::GraphFormat,
     home::{HistoryLine, HistorySelection},
-    mode_screen::ModeRow,
     plot::Plot,
     token::Token,
     window::Window,
@@ -60,17 +60,16 @@ pub struct HomeView<'a> {
     pub selected: Option<HistorySelection>,
 }
 
-/// The MODE screen: a row per setting.
+/// An options screen, MODE or FORMAT: a line per setting.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModeView {
     pub rows: Vec<ModeRowView>,
 }
 
-/// A MODE row: its options, the chosen one, and the highlighted one when
-/// the cursor is on this row.
+/// A line of options: the options, the chosen one, and the highlighted one
+/// when the cursor is on this line.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModeRowView {
-    pub row: ModeRow,
     pub options: &'static [&'static str],
     pub selected: usize,
     pub highlighted: Option<usize>,
@@ -138,15 +137,29 @@ pub struct TableView {
 }
 
 /// The graph screen: the window, the sampled functions, tick positions, the
-/// trace cursor when tracing, and a CALC item under way.
+/// FORMAT settings, the trace cursor when tracing, the free cursor when it
+/// is out, and a CALC item under way.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GraphView {
     pub window: Window,
     pub plot: Plot,
     pub x_ticks: Vec<f64>,
     pub y_ticks: Vec<f64>,
+    pub format: GraphFormat,
     pub trace: Option<TraceView>,
+    pub free: Option<FreeView>,
     pub calc: Option<CalcView>,
+}
+
+/// The free cursor's point and its texts (`X=1.5`), with ZBox's first
+/// corner once marked.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FreeView {
+    pub x: f64,
+    pub y: f64,
+    pub x_text: String,
+    pub y_text: String,
+    pub corner: Option<(f64, f64)>,
 }
 
 /// What a CALC item shows over the graph.

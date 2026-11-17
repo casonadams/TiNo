@@ -8,6 +8,7 @@ const ZOOM_FACTOR: f64 = 4.0;
 /// The ZOOM menu's commands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ZoomItem {
+    ZBox,
     ZoomIn,
     ZoomOut,
     ZDecimal,
@@ -18,7 +19,8 @@ pub enum ZoomItem {
 }
 
 impl ZoomItem {
-    pub const ALL: [ZoomItem; 7] = [
+    pub const ALL: [ZoomItem; 8] = [
+        ZoomItem::ZBox,
         ZoomItem::ZoomIn,
         ZoomItem::ZoomOut,
         ZoomItem::ZDecimal,
@@ -30,6 +32,7 @@ impl ZoomItem {
 
     pub fn label(self) -> &'static str {
         match self {
+            ZoomItem::ZBox => "ZBox",
             ZoomItem::ZoomIn => "Zoom In",
             ZoomItem::ZoomOut => "Zoom Out",
             ZoomItem::ZDecimal => "ZDecimal",
@@ -41,9 +44,10 @@ impl ZoomItem {
     }
 
     /// The digit that picks the item, as numbered on the calculator's ZOOM
-    /// menu (ZBox, 1, is not offered).
+    /// menu.
     pub fn digit(self) -> u8 {
         match self {
+            ZoomItem::ZBox => 1,
             ZoomItem::ZoomIn => 2,
             ZoomItem::ZoomOut => 3,
             ZoomItem::ZDecimal => 4,
@@ -69,9 +73,12 @@ pub struct ZoomContext {
     pub fit: Option<(f64, f64)>,
 }
 
-/// The window `item` makes from `window`. Zoom In and Out keep its center.
-pub fn apply(item: ZoomItem, window: Window, context: ZoomContext) -> Window {
-    match item {
+/// The window `item` makes from `window`, Zoom In and Out keeping its
+/// center; `None` for ZBox, whose window comes from two corners marked on
+/// the graph.
+pub fn apply(item: ZoomItem, window: Window, context: ZoomContext) -> Option<Window> {
+    Some(match item {
+        ZoomItem::ZBox => return None,
         ZoomItem::ZoomIn => window.zoomed(ZOOM_FACTOR, (0.5, 0.5)),
         ZoomItem::ZoomOut => window.zoomed(1.0 / ZOOM_FACTOR, (0.5, 0.5)),
         ZoomItem::ZDecimal => decimal(window),
@@ -79,7 +86,7 @@ pub fn apply(item: ZoomItem, window: Window, context: ZoomContext) -> Window {
         ZoomItem::ZStandard => Window::standard(),
         ZoomItem::ZTrig => trig(context.angle),
         ZoomItem::ZoomFit => context.fit.map_or(window, |extent| fitted(window, extent)),
-    }
+    })
 }
 
 /// x from -6.6 to 6.6 (.05 per column of the color screen's graph) and y
@@ -166,13 +173,14 @@ mod tests {
     #[test]
     fn zoom_in_then_out_restores_the_window() {
         let window = Window::standard();
-        let zoomed_in = apply(ZoomItem::ZoomIn, window, RADIAN);
-        assert_eq!(apply(ZoomItem::ZoomOut, zoomed_in, RADIAN), window);
+        let zoomed_in = apply(ZoomItem::ZoomIn, window, RADIAN).unwrap();
+        assert_eq!(apply(ZoomItem::ZoomOut, zoomed_in, RADIAN), Some(window));
+        assert_eq!(apply(ZoomItem::ZBox, window, RADIAN), None);
     }
 
     #[test]
     fn zsquare_makes_pixels_square() {
-        let squared = apply(ZoomItem::ZSquare, Window::standard(), RADIAN);
+        let squared = apply(ZoomItem::ZSquare, Window::standard(), RADIAN).unwrap();
         assert!((squared.delta_x() - squared.delta_y()).abs() < 1e-12);
         assert_eq!((squared.y_min, squared.y_max), (-10.0, 10.0));
     }
@@ -183,7 +191,8 @@ mod tests {
             ZoomItem::ZTrig,
             Window::standard(),
             context(Angle::Degree, None),
-        );
+        )
+        .unwrap();
         assert_eq!(
             (degrees.x_min, degrees.x_max, degrees.x_scale),
             (-352.5, 352.5, 90.0)
@@ -198,6 +207,7 @@ mod tests {
                 Window::standard(),
                 context(Angle::Radian, Some(extent)),
             )
+            .unwrap()
         };
         let fitted = fit((-3.0, 8.0));
         assert_eq!((fitted.y_min, fitted.y_max), (-3.0, 8.0));

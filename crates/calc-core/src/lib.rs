@@ -5,6 +5,7 @@
 //! into what the screen shows.
 
 pub mod calculator;
+pub mod choice_screen;
 pub mod editor;
 pub mod error;
 pub mod error_screen;
@@ -12,8 +13,10 @@ pub mod eval;
 pub mod expr;
 pub mod field_editor;
 pub mod format;
+pub mod free_cursor;
 pub mod functions;
 pub mod graph_calc;
+pub mod graph_format;
 pub mod home;
 pub mod key;
 pub mod keymap;

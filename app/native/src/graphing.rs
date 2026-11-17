@@ -96,7 +96,30 @@ pub struct CalcPanel {
     pub shade_to: Option<f64>,
 }
 
-/// The graph screen: the window's ranges, the sampled functions, tick positions, the trace and a CALC item.
+/// The FORMAT grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PropEnum)]
+pub enum GridStyle {
+    Off,
+    /// A dot at each tick crossing.
+    Dot,
+    /// Lines through the ticks.
+    Line,
+}
+
+/// The free-moving cursor and, during ZBox, the first corner once marked.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct FreePoint {
+    pub x: f64,
+    pub y: f64,
+    /// `X=1.5`.
+    pub x_text: String,
+    pub y_text: String,
+    pub corner_x: Option<f64>,
+    pub corner_y: Option<f64>,
+}
+
+/// The graph screen: the window's ranges, the sampled functions, tick positions, the FORMAT settings, the trace or
+/// free cursor and a CALC item.
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct GraphScreen {
     pub x_min: f64,
@@ -108,7 +131,16 @@ pub struct GraphScreen {
     pub curves: Vec<Curve>,
     pub x_ticks: Vec<f64>,
     pub y_ticks: Vec<f64>,
+    /// Whether the free cursor shows its coordinates.
+    pub coordinates: bool,
+    pub grid: GridStyle,
+    pub axes: bool,
+    /// Whether the axes are labeled x and y.
+    pub labels: bool,
+    /// Whether the trace shows the traced function's equation.
+    pub expression: bool,
     pub trace: Option<Trace>,
+    pub free: Option<FreePoint>,
     pub calc: Option<CalcPanel>,
 }
 
@@ -198,7 +230,24 @@ pub fn graph_screen(view: &calc_core::GraphView) -> GraphScreen {
         curves: curves.collect(),
         x_ticks: view.x_ticks.clone(),
         y_ticks: view.y_ticks.clone(),
+        coordinates: view.format.coordinates,
+        grid: match view.format.grid {
+            calc_core::graph_format::Grid::Off => GridStyle::Off,
+            calc_core::graph_format::Grid::Dot => GridStyle::Dot,
+            calc_core::graph_format::Grid::Line => GridStyle::Line,
+        },
+        axes: view.format.axes,
+        labels: view.format.labels,
+        expression: view.format.expression,
         trace,
+        free: view.free.as_ref().map(|free| FreePoint {
+            x: free.x,
+            y: free.y,
+            x_text: free.x_text.clone(),
+            y_text: free.y_text.clone(),
+            corner_x: free.corner.map(|(x, _)| x),
+            corner_y: free.corner.map(|(_, y)| y),
+        }),
         calc: view.calc.as_ref().map(calc_panel),
     }
 }

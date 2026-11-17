@@ -7,7 +7,6 @@ use crate::{
     keymap::Layer,
     list_menu::ListMenu,
     menus::MenuCursor,
-    mode_screen::{ModeCursor, ModeRow},
     modifiers::AlphaState,
     plot::plot,
     screen::{
@@ -32,7 +31,8 @@ impl Calculator {
                     cursor: self.editor.cursor(),
                     selected: state.selected,
                 }),
-                View::Mode(cursor) => ScreenView::Mode(self.mode_view(*cursor)),
+                View::Mode(cursor) => ScreenView::Mode(choice_view(*cursor, &self.settings)),
+                View::Format(cursor) => ScreenView::Mode(choice_view(*cursor, &self.format)),
                 View::Error(menu) => ScreenView::Error(error_view(menu)),
                 View::Functions(cursor) => ScreenView::Functions(self.functions_view(*cursor)),
                 View::Window(cursor) => {
@@ -43,6 +43,12 @@ impl Calculator {
                 }
                 View::Table(cursor) => ScreenView::Table(self.table_view(*cursor)),
                 View::Graph(trace) => ScreenView::Graph(Box::new(self.graph_view(*trace))),
+                View::FreeGraph(cursor) => {
+                    ScreenView::Graph(Box::new(self.free_graph_view(*cursor, None)))
+                }
+                View::ZBox(marking) => ScreenView::Graph(Box::new(
+                    self.free_graph_view(marking.cursor, marking.corner),
+                )),
                 View::Zoom(menu) => ScreenView::Menu(zoom_menu(*menu)),
                 View::CalcMenu(menu) => ScreenView::Menu(calc_menu(*menu)),
                 View::GraphCalc(session) => {
@@ -53,17 +59,6 @@ impl Calculator {
         }
     }
 
-    fn mode_view(&self, cursor: ModeCursor) -> ModeView {
-        let rows = ModeRow::ALL.map(|row| ModeRowView {
-            row,
-            options: row.options(),
-            selected: row.selected(self.settings),
-            highlighted: (row == cursor.row()).then_some(cursor.column()),
-        });
-        ModeView {
-            rows: rows.to_vec(),
-        }
-    }
 
     fn functions_view(&self, cursor: YCursor) -> FunctionsView<'_> {
         let rows = self
@@ -130,7 +125,9 @@ impl Calculator {
             plot: plot(&functions, &context),
             x_ticks: self.window.x_ticks(),
             y_ticks: self.window.y_ticks(),
+            format: self.format,
             trace,
+            free: None,
             calc: None,
         }
     }
@@ -189,5 +186,18 @@ fn typing_menu(cursor: MenuCursor) -> MenuView {
         tab: cursor.tab,
         items: items.collect(),
         highlighted: cursor.highlighted,
+    }
+}
+
+/// An options screen's lines: each line's options and chosen one, and the
+/// highlighted option on the cursor's line.
+fn choice_view<R: ChoiceRow>(cursor: ChoiceCursor<R>, settings: &R::Settings) -> ModeView {
+    let rows = R::ALL.iter().map(|&row| ModeRowView {
+        options: row.options(),
+        selected: row.selected(settings),
+        highlighted: (row == cursor.row()).then_some(cursor.column()),
+    });
+    ModeView {
+        rows: rows.collect(),
     }
 }
