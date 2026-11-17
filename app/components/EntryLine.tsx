@@ -2,18 +2,19 @@ import { Text, View } from "nsh";
 import type { CursorStyle } from "tino/native";
 import { type LcdCell, lcdCells } from "./lcdCells";
 
+/** A cell `size` points high in text, on a line 1.3 times that; the cursor block covers the glyph's height. */
 function Cell(props: { cell: () => LcdCell; size: number }) {
   return (
-    <View class="flex-row items-center" style={{ height: props.size + 8 }}>
+    <View class="flex-row items-center" style={{ height: props.size * 1.3 }}>
       <If when={props.cell().cursor === "bar"}>
-        <View class="bg-lcd-cursor" style={{ width: 2, height: props.size + 2 }} />
+        <View class="bg-lcd-cursor" style={{ width: Math.max(1, props.size / 8), height: props.size * 1.15 }} />
       </If>
       <View
-        class={props.cell().cursor === "block" ? "bg-lcd-cursor rounded-sm" : "bg-lcd"}
-        style={{ minWidth: props.cell().text === "" ? props.size / 2 : 0, height: props.size + 4, justifyContent: "center" }}
+        class={props.cell().cursor === "block" ? "bg-lcd-cursor" : ""}
+        style={{ minWidth: props.cell().text === "" ? props.size * 0.6 : 0, height: props.size * 1.2, justifyContent: "center" }}
       >
         <Text
-          class={props.cell().cursor === "block" ? "text-lcd" : "text-lcd-foreground"}
+          class={`font-mono ${props.cell().cursor === "block" ? "text-lcd" : "text-lcd-foreground"}`}
           style={{ fontSize: props.size }}
         >
           {props.cell().text}

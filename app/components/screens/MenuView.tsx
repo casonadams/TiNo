@@ -1,17 +1,25 @@
 import { Text, View } from "nsh";
 import type { MenuItem, MenuScreen } from "tino/native";
+import { LcdRows, type RowEdge } from "../LcdRows";
+import { GRID, px } from "../lcdGrid";
 
-/** A menu: its tab titles with the shown one filled, then `key:label` items with the highlighted one filled. */
+const SEPARATORS: Record<"above" | "below" | "none", string> = { above: "↑", below: "↓", none: ":" };
+
+/** A menu as the calculator draws it: the tab titles with the shown one filled, then one item per line, the highlighted item's key filled; `↑`/`↓` after a key mark items scrolled off that way. */
 export function MenuView(props: { menu: () => MenuScreen }) {
+  const text = () => ({ fontSize: px(GRID.text) });
+  const line = () => ({ height: px(GRID.line) });
+  const selected = (index: number) => index === props.menu().highlighted;
+  const separator = (edge: RowEdge) => SEPARATORS[edge ?? "none"];
   return (
-    <View class="flex-1 gap-0.5" testID="menu">
-      <View class="flex-row gap-2">
+    <View class="flex-1" testID="menu">
+      <View class="flex-row items-center" style={{ ...line(), columnGap: px(10) }}>
         <Each of={props.menu().tabs} key={(tab: string) => tab}>
           {(tab, index) => (
-            <View class={`rounded-sm px-1 ${index() === props.menu().tab ? "bg-lcd-foreground" : "bg-lcd"}`}>
+            <View class={index() === props.menu().tab ? "bg-lcd-foreground" : ""} style={{ paddingHorizontal: px(2) }}>
               <Text
-                class={`font-semibold ${index() === props.menu().tab ? "text-lcd" : "text-lcd-foreground"}`}
-                style={{ fontSize: 15 }}
+                class={`font-mono ${index() === props.menu().tab ? "text-lcd" : "text-lcd-foreground"}`}
+                style={text()}
               >
                 {tab()}
               </Text>
@@ -19,20 +27,20 @@ export function MenuView(props: { menu: () => MenuScreen }) {
           )}
         </Each>
       </View>
-      <Each of={props.menu().items} key={(item: MenuItem) => item.key}>
-        {(item, index) => (
-          <View
-            class={`self-start rounded-sm px-1.5 ${index() === props.menu().highlighted ? "bg-lcd-foreground" : "bg-lcd"}`}
-          >
-            <Text
-              class={index() === props.menu().highlighted ? "text-lcd" : "text-lcd-foreground"}
-              style={{ fontSize: 17 }}
-            >
-              {`${item().key}:${item().label}`}
+      <LcdRows items={() => props.menu().items} focus={() => props.menu().highlighted} key={(item: MenuItem) => item.key}>
+        {(item, index, edge) => (
+          <View class="flex-row items-center" style={line()} accessibilityLabel={`${item().key}:${item().label}`}>
+            <View class={selected(index()) ? "bg-lcd-foreground" : ""}>
+              <Text class={`font-mono ${selected(index()) ? "text-lcd" : "text-lcd-foreground"}`} style={text()}>
+                {`${item().key}${separator(edge())}`}
+              </Text>
+            </View>
+            <Text class="font-mono text-lcd-foreground" style={text()}>
+              {item().label}
             </Text>
           </View>
         )}
-      </Each>
+      </LcdRows>
     </View>
   );
 }

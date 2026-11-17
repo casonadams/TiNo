@@ -15,6 +15,7 @@
       "lcd-muted": "#56634a",
       "lcd-error": "#7a1f1f",
       "lcd-cursor": "#1d2316",
+      "lcd-status": "#a7b391",
       "key": "#20252c",
       "key-foreground": "#eef0f2",
       "key-function": "#56647a",

@@ -55,6 +55,9 @@ at a WebAssembly clang and `llvm-ar` (see README).
   and warns without them. Keep them short and about behavior.
 - **Colors come from theme tokens only** (`bg-key-number`, `token("graph-1")`). Every skin's `theme.json` defines
   the same token set; add a token to every skin when you add one. No raw colors or palette classes in components.
+- **The LCD is a 320×240 grid** (`app/components/lcdGrid.ts`): sizes inside it are grid pixels through `px()`, which
+  scale with the glass; text is `GRID.text` in the monospace font on `GRID.line` lines. Lists taller than the screen
+  go through `LcdRows`, which keeps the focused row in view; the core sends whole lists, not screenfuls.
 - **Skins** are data: `app/skins/<id>/theme.json` and a keypad layout, registered in `app/skins/index.ts`. The
   app test "every key of every skin" catches a key id the core does not know.
 - **Saved state** has a version (`SNAPSHOT_VERSION` in `calculator/persist.rs`). A new field with a serde default keeps

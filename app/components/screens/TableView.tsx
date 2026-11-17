@@ -1,10 +1,13 @@
 import { Text, View } from "nsh";
 import type { TableScreen } from "tino/native";
 import { scrollTable } from "../../store";
+import { px } from "../lcdGrid";
 
-const CELL_SIZE = 15;
-/** Drag distance, in points, that scrolls one row. */
-const ROW_HEIGHT = 20;
+/** Table text and row height on the 320-pixel grid: eight rows under a header fit the screen. */
+const cellSize = () => px(13);
+/** A row's height in points, also the drag distance that scrolls one row. */
+const rowHeight = () => px(19);
+/** Wheel distance, in points, of one line of a line-based wheel. */
 const LINE_HEIGHT = 16;
 
 /** A table cell with its position, so equal values keep distinct keys. */
@@ -19,15 +22,15 @@ interface TableLine {
   cells: TableCell[];
 }
 
-function Cell(props: { text: string; selected: boolean; header?: boolean }) {
+function Cell(props: { text: string; selected: boolean }) {
   return (
     <View
-      class={`flex-1 items-center justify-center rounded-sm ${props.selected ? "bg-lcd-foreground" : "bg-lcd"}`}
-      style={{ height: ROW_HEIGHT }}
+      class={`flex-1 items-center justify-center ${props.selected ? "bg-lcd-foreground" : ""}`}
+      style={{ height: rowHeight() }}
     >
       <Text
-        class={`${props.selected ? "text-lcd" : "text-lcd-foreground"} ${props.header ? "font-semibold" : ""}`}
-        style={{ fontSize: CELL_SIZE, numberOfLines: 1 }}
+        class={`font-mono ${props.selected ? "text-lcd" : "text-lcd-foreground"}`}
+        style={{ fontSize: cellSize(), numberOfLines: 1 }}
       >
         {props.text}
       </Text>
@@ -44,7 +47,7 @@ export function TableView(props: { table: () => TableScreen }) {
     props.table().rows.map((cells, row) => ({ row, cells: cells.map((text, column) => ({ column, text })) }));
   return (
     <View
-      class="flex-1 gap-0.5"
+      class="flex-1"
       testID="table"
       onStartShouldSetResponder={() => true}
       onResponderGrant={(e) => {
@@ -53,21 +56,21 @@ export function TableView(props: { table: () => TableScreen }) {
         return true;
       }}
       onResponderMove={(e) => {
-        const rows = Math.trunc((e.pageY - dragStart - dragged) / ROW_HEIGHT);
+        const rows = Math.trunc((e.pageY - dragStart - dragged) / rowHeight());
         if (rows === 0) return;
-        dragged += rows * ROW_HEIGHT;
+        dragged += rows * rowHeight();
         scrollTable(-rows);
       }}
       onWheel={(e) => {
         wheeled += e.delta.y * (e.deltaMode === "lines" ? LINE_HEIGHT : 1);
-        const rows = Math.trunc(wheeled / ROW_HEIGHT);
+        const rows = Math.trunc(wheeled / rowHeight());
         if (rows === 0) return;
-        wheeled -= rows * ROW_HEIGHT;
+        wheeled -= rows * rowHeight();
         scrollTable(rows);
       }}
     >
       <View class="flex-row gap-0.5 border-b border-lcd-muted">
-        <Each of={props.table().headers}>{(header) => <Cell text={header()} selected={false} header />}</Each>
+        <Each of={props.table().headers}>{(header) => <Cell text={header()} selected={false} />}</Each>
       </View>
       <Each of={lines()} key={(line: TableLine) => line.row}>
         {(line) => (
@@ -83,7 +86,7 @@ export function TableView(props: { table: () => TableScreen }) {
           </View>
         )}
       </Each>
-      <Text class="text-lcd-foreground" style={{ fontSize: 13 }} testID="table-footer">
+      <Text class="font-mono text-lcd-foreground" style={{ fontSize: cellSize() }} testID="table-footer">
         {props.table().footer}
       </Text>
     </View>

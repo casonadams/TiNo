@@ -20,13 +20,18 @@ test("enter shows the result and clears the entry line", async () => {
   expect(app.shows("label:12×12")).toBe(false);
 });
 
-test("MATH shows its tabs and an item's key types it into the entry", async () => {
+test("MATH shows its tabs, scrolls to the highlighted item, and an item's key types it", async () => {
   const app = await open("./App.tsx");
   await app.press("id:key-math");
-  for (const text of ["MATH", "NUM", "PROB", "1:►Frac", "9:fnInt("]) expect(app.texts()).toContain(text);
-  expect(app.texts()).not.toContain("A:logBASE(");
+  for (const text of ["MATH", "NUM", "PROB"]) expect(app.texts()).toContain(text);
+  expect(app.shows("label:1:►Frac")).toBe(true);
+  expect(app.shows("label:A:logBASE(")).toBe(false);
+  expect(app.texts()).toContain("9↓");
+  await app.press("id:key-up");
+  expect(app.shows("label:A:logBASE(")).toBe(true);
+  expect(app.shows("label:1:►Frac")).toBe(false);
   await app.press("id:key-right");
-  expect(app.texts()).toContain("9:gcd(");
+  expect(app.shows("label:9:gcd(")).toBe(true);
   await app.press("id:key-1");
   expect(app.shows("id:menu")).toBe(false);
   expect(app.shows("label:abs(")).toBe(true);
@@ -35,7 +40,8 @@ test("MATH shows its tabs and an item's key types it into the entry", async () =
 test("an error offers Quit and Goto; Goto returns to the entry", async () => {
   const app = await open("./App.tsx");
   for (const key of ["1", "divide", "0", "enter"]) await app.press(`id:key-${key}`);
-  for (const text of ["ERR:DIVIDE BY 0", "1:Quit", "2:Goto"]) expect(app.texts()).toContain(text);
+  expect(app.texts()).toContain("ERR:DIVIDE BY 0");
+  for (const label of ["1:Quit", "2:Goto"]) expect(app.shows(`label:${label}`)).toBe(true);
   await app.press("id:key-2");
   expect(app.texts()).not.toContain("ERR:DIVIDE BY 0");
   expect(app.shows("label:1÷0")).toBe(true);
@@ -62,7 +68,7 @@ test("a function typed in Y= graphs, and TRACE reports its points", async () => 
 test("2nd CALC asks for points on the graph and shows the result", async () => {
   const app = await open("./App.tsx");
   for (const key of ["y-equals", "xt-theta-n", "square", "second", "trace"]) await app.press(`id:key-${key}`);
-  expect(app.texts()).toContain("1:value");
+  expect(app.shows("label:1:value")).toBe(true);
   await app.press("id:key-6");
   expect(app.texts()).toContain("Y1=X²");
   await app.press("id:key-right");

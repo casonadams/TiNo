@@ -176,7 +176,6 @@ fn zoom_menu(menu: ListMenu) -> MenuView {
         items: items.collect(),
         highlighted: menu.highlighted(),
     }
-    .scrolled()
 }
 
 fn typing_menu(cursor: MenuCursor) -> MenuView {
@@ -191,5 +190,4 @@ fn typing_menu(cursor: MenuCursor) -> MenuView {
         items: items.collect(),
         highlighted: cursor.highlighted,
     }
-    .scrolled()
 }

@@ -3,14 +3,18 @@ import type { CalcPanel, CursorStyle, GraphScreen } from "tino/native";
 import { panGraph, traceAt, zoomGraph } from "../../store";
 import { EntryLine } from "../EntryLine";
 import { drawGraph } from "../graphDrawing";
+import { GRID, px } from "../lcdGrid";
+
+/** Overlaid graph text: small, on the grid. */
+const small = () => ({ fontSize: px(GRID.small) });
 
 /** A CALC item's line: its prompt or result title, the X being typed for value, or its value (`dy/dx=4`). */
 function CalcLine(props: { calc: () => CalcPanel; cursorStyle: () => CursorStyle }) {
   return (
-    <View class="flex-row items-center gap-2" testID="calc">
+    <View class="flex-row items-center" style={{ columnGap: px(6) }} testID="calc">
       <If when={props.calc().heading}>
         {(heading) => (
-          <Text class="text-lcd-foreground font-semibold" style={{ fontSize: 13 }}>
+          <Text class="font-mono text-lcd-foreground" style={small()}>
             {heading()}
           </Text>
         )}
@@ -18,16 +22,21 @@ function CalcLine(props: { calc: () => CalcPanel; cursorStyle: () => CursorStyle
       <If when={props.calc().entry}>
         {(entry) => (
           <View class="flex-1 flex-row items-center">
-            <Text class="text-lcd-foreground" style={{ fontSize: 13 }}>
+            <Text class="font-mono text-lcd-foreground" style={small()}>
               X=
             </Text>
-            <EntryLine entry={entry} cursor={() => props.calc().entryCursor} cursorStyle={props.cursorStyle} size={13} />
+            <EntryLine
+              entry={entry}
+              cursor={() => props.calc().entryCursor}
+              cursorStyle={props.cursorStyle}
+              size={px(GRID.small)}
+            />
           </View>
         )}
       </If>
       <If when={props.calc().value}>
         {(value) => (
-          <Text class="text-lcd-foreground" style={{ fontSize: 13 }}>
+          <Text class="font-mono text-lcd-foreground" style={small()}>
             {value()}
           </Text>
         )}
@@ -49,7 +58,7 @@ export function GraphView(props: { graph: () => GraphScreen; cursorStyle: () => 
   let travelled = 0;
   const pinch = createAnimatedValue(1);
   return (
-    <View class="flex-1 gap-1">
+    <View class="flex-1">
       <Canvas
         testID="graph"
         style={{ flex: 1 }}
@@ -85,24 +94,32 @@ export function GraphView(props: { graph: () => GraphScreen; cursorStyle: () => 
           pinch.set(1);
         }}
       />
-      <If when={props.graph().calc}>{(calc) => <CalcLine calc={calc} cursorStyle={props.cursorStyle} />}</If>
       <If when={props.graph().trace}>
         {(trace) => (
-          <View class="gap-0.5" testID="trace">
-            <Text class="text-lcd-foreground" style={{ fontSize: 13 }}>
-              {trace().equation}
-            </Text>
+          <Text
+            class="font-mono text-lcd-foreground"
+            style={{ ...small(), position: "absolute", top: 0, left: 0 }}
+            testID="trace"
+          >
+            {trace().equation}
+          </Text>
+        )}
+      </If>
+      <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+        <If when={props.graph().calc}>{(calc) => <CalcLine calc={calc} cursorStyle={props.cursorStyle} />}</If>
+        <If when={props.graph().trace}>
+          {(trace) => (
             <View class="flex-row justify-between">
-              <Text class="text-lcd-foreground" style={{ fontSize: 13 }}>
+              <Text class="font-mono text-lcd-foreground" style={small()}>
                 {trace().xText}
               </Text>
-              <Text class="text-lcd-foreground" style={{ fontSize: 13 }}>
+              <Text class="font-mono text-lcd-foreground" style={small()}>
                 {trace().yText}
               </Text>
             </View>
-          </View>
-        )}
-      </If>
+          )}
+        </If>
+      </View>
     </View>
   );
 }

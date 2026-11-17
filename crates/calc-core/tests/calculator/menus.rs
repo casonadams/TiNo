@@ -92,14 +92,3 @@ fn vars_reads_window_settings_and_y_equals_functions() {
     );
     assert_eq!(results(&calculator), ["9", "⁻10"]);
 }
-
-#[test]
-fn a_long_menu_scrolls_to_keep_the_highlighted_item_shown() {
-    let mut calculator = pressed(&[Key::Math]);
-    let (_, items) = menu_tab(&calculator).expect("the menu is shown");
-    assert_eq!(items.first().map(String::as_str), Some("1:►Frac"));
-    press(&mut calculator, &[Key::Up]);
-    let (_, items) = menu_tab(&calculator).expect("the menu is shown");
-    assert_eq!(items.last().map(String::as_str), Some("A:logBASE("));
-    assert_eq!(items.first().map(String::as_str), Some("3:³"));
-}

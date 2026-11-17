@@ -251,5 +251,4 @@ pub(super) fn calc_menu(menu: ListMenu) -> MenuView {
         items: items.collect(),
         highlighted: menu.highlighted(),
     }
-    .scrolled()
 }

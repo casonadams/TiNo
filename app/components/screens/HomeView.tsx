@@ -2,17 +2,41 @@ import { Text, View } from "nsh";
 import { TextView } from "nsh/base";
 import type { CursorStyle, HistoryLine, HomeScreen } from "tino/native";
 import { EntryLine } from "../EntryLine";
+import { GRID, px } from "../lcdGrid";
 
-/** An evaluated entry: typeset on the left, its result on the right below it; the half ▲ ▼ highlight is outlined. */
+/** A highlighted half of a history line: filled, as the calculator inverts it. */
+const highlight = (selected: boolean) => (selected ? "bg-lcd-accent" : "");
+
+/** Typeset formulas take their size from a text class, not a font size: the class nearest `points`. */
+function typesetSize(points: number): string {
+  const sizes: [number, string][] = [
+    [14, "text-sm"],
+    [16, "text-base"],
+    [18, "text-lg"],
+    [20, "text-xl"],
+    [24, "text-2xl"],
+  ];
+  return sizes.reduce((best, size) => (Math.abs(size[0] - points) < Math.abs(best[0] - points) ? size : best))[1];
+}
+
+/** An evaluated entry: typeset on the left, its result on the right on the next line; the half ▲ ▼ highlight is filled. */
 function HistoryRow(props: { line: () => HistoryLine }) {
-  const outline = (selected: boolean) => `rounded-sm border-2 px-0.5 ${selected ? "border-lcd-accent" : "border-lcd"}`;
   return (
-    <View class="gap-0.5">
-      <View class={`self-start ${outline(props.line().entrySelected)}`}>
-        <TextView markdown={`$${props.line().latex}$`} class="text-lg text-lcd-foreground" />
-      </View>
-      <View class={`self-end ${outline(props.line().resultSelected)}`}>
-        <Text class="text-lcd-foreground" style={{ fontSize: 22 }}>
+    <View>
+      <TextView
+        markdown={`$${props.line().latex}$`}
+        class={`${typesetSize(px(GRID.text))} ${highlight(props.line().entrySelected)} ${
+          props.line().entrySelected ? "text-lcd" : "text-lcd-foreground"
+        }`}
+      />
+      <View
+        class={`self-end justify-center ${highlight(props.line().resultSelected)}`}
+        style={{ height: px(GRID.line) }}
+      >
+        <Text
+          class={`font-mono ${props.line().resultSelected ? "text-lcd" : "text-lcd-foreground"}`}
+          style={{ fontSize: px(GRID.text) }}
+        >
           {props.line().result}
         </Text>
       </View>
@@ -23,7 +47,7 @@ function HistoryRow(props: { line: () => HistoryLine }) {
 /** The home screen: the newest history at the bottom, then the entry line. */
 export function HomeView(props: { home: () => HomeScreen; cursorStyle: () => CursorStyle }) {
   return (
-    <View class="flex-1 justify-end gap-2" style={{ overflow: "hidden" }}>
+    <View class="flex-1 justify-end" style={{ overflow: "hidden" }}>
       <Each of={props.home().history} key={(line: HistoryLine) => line.id}>
         {(line) => <HistoryRow line={line} />}
       </Each>
@@ -32,7 +56,7 @@ export function HomeView(props: { home: () => HomeScreen; cursorStyle: () => Cur
           entry={() => props.home().entry}
           cursor={() => props.home().cursor}
           cursorStyle={props.cursorStyle}
-          size={22}
+          size={px(GRID.text)}
           testID="entry"
         />
       </View>

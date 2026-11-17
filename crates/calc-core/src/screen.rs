@@ -175,30 +175,15 @@ pub struct TraceView {
     pub y_text: String,
 }
 
-/// Menu items the screen shows at once, below the tabs.
-pub const MENU_ROWS: usize = 9;
-
-/// A menu: its tabs (one for ZOOM), the shown items of the shown tab, and
-/// the highlighted one among them.
+/// A menu: its tabs (one for ZOOM), the shown tab's items, and the
+/// highlighted one. The screen shows as many as fit, keeping the
+/// highlighted one in view.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MenuView {
     pub tabs: Vec<&'static str>,
     pub tab: usize,
     pub items: Vec<MenuItemView>,
     pub highlighted: usize,
-}
-
-impl MenuView {
-    /// At most `MENU_ROWS` items, scrolled so the highlighted one is the
-    /// last shown when it lies below the first `MENU_ROWS`.
-    pub fn scrolled(self) -> Self {
-        let first = (self.highlighted + 1).saturating_sub(MENU_ROWS);
-        MenuView {
-            items: self.items.into_iter().skip(first).take(MENU_ROWS).collect(),
-            highlighted: self.highlighted - first,
-            ..self
-        }
-    }
 }
 
 /// A menu item and the key that picks it (`1`, `0`, `A`).

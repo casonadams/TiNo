@@ -120,7 +120,7 @@ pub struct MenuItem {
 }
 
 /// A menu: its tab titles (one for ZOOM), the shown tab, its items and the
-/// highlighted item.
+/// highlighted one.
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct MenuScreen {
     pub tabs: Vec<String>,
