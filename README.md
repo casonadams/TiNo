@@ -58,6 +58,7 @@ graphing (u, v, w). Their keys do nothing; syntax that needs them shows `ERR:UNS
 | `+` `-` `*` `/` `^` `(` `)` | + − × ÷ ^ ( ) |
 | Enter, Backspace or Delete, Escape | ENTER, DEL, CLEAR |
 | Arrow keys | ▲ ▼ ◀ ▶ |
+| `A`–`Z`, Space, `"` `:` `?` | ALPHA and the key with that letter or character |
 
 ## Development
 

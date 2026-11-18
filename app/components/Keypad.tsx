@@ -40,10 +40,10 @@ function Dpad(props: { dpad: KeypadLayout["dpad"]; onPress: Press }) {
 /** The keypad a skin lays out: the function row, 2nd/ALPHA beside the arrows, then the main grid. */
 export function Keypad(props: { layout: KeypadLayout; onPress: Press }) {
   return (
-    <View class="gap-2" style={{ flexGrow: 1, flexShrink: 0 }}>
+    <View class="gap-1.5" style={{ flexGrow: 1, flexShrink: 1, minHeight: 0 }}>
       <KeyRow keys={props.layout.functionRow} onPress={props.onPress} />
       <View class="flex-row gap-2" style={{ flex: 2 }}>
-        <View class="gap-2" style={{ flex: 3 }}>
+        <View class="gap-1.5" style={{ flex: 3 }}>
           {props.layout.control.map((row) => (
             <KeyRow keys={row} onPress={props.onPress} />
           ))}

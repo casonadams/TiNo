@@ -19,6 +19,12 @@ const LABELS: Record<KeyVariant, string> = {
   alpha: "text-key-alpha-foreground",
 };
 
+/** A label's font size: smaller for longer labels (`window`, `X,T,θ,n`), so each fits a key on one line on narrow phones. */
+function labelSize(label: string): number {
+  if (label.length >= 7) return 11;
+  return label.length >= 5 ? 12 : 15;
+}
+
 /** A key with its 2nd legend above on the left and its ALPHA legend above on the right. */
 export function KeyButton(props: { spec: KeySpec; onPress: (key: string) => void; legends?: boolean }) {
   const variant = props.spec.variant ?? "default";
@@ -40,9 +46,8 @@ export function KeyButton(props: { spec: KeySpec; onPress: (key: string) => void
         testID={`key-${props.spec.key}`}
         onPress={() => props.onPress(props.spec.key)}
         class={`flex-1 items-center justify-center rounded-md active:opacity-70 ${SURFACES[variant]}`}
-        style={{ minHeight: 28 }}
       >
-        <Text class={`font-semibold ${LABELS[variant]}`} style={{ fontSize: 15 }}>
+        <Text class={`font-semibold ${LABELS[variant]}`} style={{ fontSize: labelSize(props.spec.label) }}>
           {props.spec.label}
         </Text>
       </View>

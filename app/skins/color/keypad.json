@@ -33,7 +33,7 @@
       { "key": "clear", "label": "clear" }
     ],
     [
-      { "key": "inverse", "label": "x⁻¹", "second": "matrix" },
+      { "key": "inverse", "label": "x⁻¹", "second": "matrix", "alpha": "D" },
       { "key": "sin", "label": "sin", "second": "sin⁻¹", "alpha": "E" },
       { "key": "cos", "label": "cos", "second": "cos⁻¹", "alpha": "F" },
       { "key": "tan", "label": "tan", "second": "tan⁻¹", "alpha": "G" },

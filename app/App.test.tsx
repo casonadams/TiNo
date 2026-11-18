@@ -109,6 +109,16 @@ test("the computer keyboard presses calculator keys", async () => {
   expect(app.shows("label:4^")).toBe(false);
 });
 
+test("letters typed on the computer keyboard come out as the calculator's letters, ALPHA lock or not", async () => {
+  const app = await open("./App.tsx");
+  for (const keystroke of ["d", "shift+x", "2"]) await app.keyboard.press(keystroke);
+  expect(app.shows("label:DX2")).toBe(true);
+  await app.press("id:key-second");
+  await app.press("id:key-alpha");
+  for (const keystroke of ["a", "b"]) await app.keyboard.press(keystroke);
+  expect(app.shows("label:DX2AB")).toBe(true);
+});
+
 test("the calculator is kept between sessions", async () => {
   const first = await open("./App.tsx");
   for (const key of ["1", "2", "3", "enter", "mode", "down", "down", "right", "enter", "second", "mode"]) {

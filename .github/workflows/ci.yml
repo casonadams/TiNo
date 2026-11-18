@@ -14,6 +14,8 @@ env:
   CARGO_TERM_COLOR: always
   CC_wasm32_unknown_unknown: clang
   AR_wasm32_unknown_unknown: llvm-ar
+  # nsh builds an app's runners in app/target by default; the workspace target is the one rust-cache keeps.
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
 
 jobs:
   rust:

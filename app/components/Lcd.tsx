@@ -36,8 +36,8 @@ function StatusBar(props: { screen: () => Screen }) {
   );
 }
 
-/** The screen, on the calculator's 320×240 grid: the status band over the settings screen while `settingsOpen`, else whichever screen the calculator shows. */
-export function Lcd(props: { screen: () => Screen; settingsOpen: () => boolean }) {
+/** The screen, on the calculator's 320×240 grid, at most `maxHeight` points tall (its bezel included): the status band over the settings screen while `settingsOpen`, else whichever screen the calculator shows. */
+export function Lcd(props: { screen: () => Screen; settingsOpen: () => boolean; maxHeight: () => number | undefined }) {
   const cursorStyle = () => props.screen().cursorStyle;
   const calculatorScreen = (
     <View class="flex-1">
@@ -57,11 +57,11 @@ export function Lcd(props: { screen: () => Screen; settingsOpen: () => boolean }
     </View>
   );
   return (
-    <View class="bg-bezel rounded-xl p-2" style={{ flexShrink: 1, minHeight: 0 }}>
+    <View class="bg-bezel rounded-xl p-2" style={{ flexShrink: 0, maxHeight: props.maxHeight() }}>
       <View
         class="bg-lcd rounded-md"
         style={{ aspectRatio: 4 / 3, flexShrink: 1, minHeight: 0, overflow: "hidden" }}
-        onLayout={(e) => fitGrid(e.bounds.size.width)}
+        onLayout={(e) => fitGrid(e.bounds.size.width, e.bounds.size.height)}
       >
         <StatusBar screen={props.screen} />
         <View class="flex-1" style={{ paddingHorizontal: px(GRID.inset), paddingVertical: px(2) }}>
