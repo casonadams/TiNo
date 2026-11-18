@@ -1,4 +1,4 @@
-import { Canvas, createAnimatedValue, Text, View } from "nsh";
+import { Canvas, type GestureResponderEvent, Text, View } from "nsh";
 import type { CalcPanel, CursorStyle, GraphScreen } from "tino/native";
 import { panGraph, traceAt, zoomGraph } from "../../store";
 import { EntryLine } from "../EntryLine";
@@ -51,12 +51,40 @@ const TAP_SLOP = 4;
 const WHEEL_ZOOM_SCALE = 300;
 const LINE_HEIGHT = 16;
 
-/** The graph: drag to pan, wheel or pinch to zoom, tap to trace; the trace's point below it. */
+/** Two fingers on the graph: how far apart they are and the point between them, in points. */
+interface Fingers {
+  spread: number;
+  middle: { x: number; y: number };
+}
+
+/** The two fingers down, if two are. */
+function fingersOf(e: GestureResponderEvent): Fingers | null {
+  const [a, b] = e.touches;
+  if (!a || !b) return null;
+  return {
+    spread: Math.hypot(a.locationX - b.locationX, a.locationY - b.locationY),
+    middle: { x: (a.locationX + b.locationX) / 2, y: (a.locationY + b.locationY) / 2 },
+  };
+}
+
+/** The graph: drag to pan; pinch to zoom about the fingers, which also pan as they move; wheel to zoom about the pointer; tap to trace. The trace's point below it. */
 export function GraphView(props: { graph: () => GraphScreen; cursorStyle: () => CursorStyle }) {
   let size = { width: 1, height: 1 };
   let last = { x: 0, y: 0 };
   let travelled = 0;
-  const pinch = createAnimatedValue(1);
+  let pinched: Fingers | null = null;
+  const anchor = (point: { x: number; y: number }) => ({ x: point.x / size.width, y: 1 - point.y / size.height });
+  /** One move of two fingers: the graph follows the point between them, then scales about it as they spread. */
+  const pinch = (fingers: Fingers) => {
+    if (pinched && pinched.spread > 0 && fingers.spread > 0) {
+      const dx = fingers.middle.x - pinched.middle.x;
+      const dy = fingers.middle.y - pinched.middle.y;
+      panGraph(-dx / size.width, dy / size.height);
+      zoomGraph(fingers.spread / pinched.spread, anchor(fingers.middle));
+    }
+    pinched = fingers;
+    travelled = Number.POSITIVE_INFINITY;
+  };
   return (
     <View class="flex-1">
       <Canvas
@@ -68,12 +96,23 @@ export function GraphView(props: { graph: () => GraphScreen; cursorStyle: () => 
         draw={(cx, { width, height }) => drawGraph(cx, props.graph(), width, height)}
         onStartShouldSetResponder={() => true}
         onResponderTerminationRequest={() => false}
+        onTouchStart={(e) => {
+          pinched = fingersOf(e) ?? pinched;
+        }}
         onResponderGrant={(e) => {
           last = { x: e.locationX, y: e.locationY };
           travelled = 0;
+          pinched = null;
           return true;
         }}
         onResponderMove={(e) => {
+          const fingers = fingersOf(e);
+          if (fingers) return pinch(fingers);
+          if (pinched) {
+            pinched = null;
+            last = { x: e.locationX, y: e.locationY };
+            return;
+          }
           const dx = e.locationX - last.x;
           const dy = e.locationY - last.y;
           travelled += Math.hypot(dx, dy);
@@ -85,13 +124,7 @@ export function GraphView(props: { graph: () => GraphScreen; cursorStyle: () => 
         }}
         onWheel={(e) => {
           const distance = e.delta.y * (e.deltaMode === "lines" ? LINE_HEIGHT : 1);
-          const anchor = { x: e.position.x / size.width, y: 1 - e.position.y / size.height };
-          zoomGraph(Math.exp(-distance / WHEEL_ZOOM_SCALE), anchor);
-        }}
-        pinch={{ scale: pinch }}
-        onPinchEnd={(e) => {
-          zoomGraph(e.scale, { x: 0.5, y: 0.5 });
-          pinch.set(1);
+          zoomGraph(Math.exp(-distance / WHEEL_ZOOM_SCALE), anchor(e.position));
         }}
       />
       <If when={props.graph().expression ? props.graph().trace : undefined}>
