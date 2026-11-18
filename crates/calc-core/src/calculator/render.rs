@@ -1,5 +1,6 @@
 use super::{Calculator, View, calc::calc_menu};
 use crate::{
+    choice_screen::{ChoiceCursor, ChoiceRow},
     error_screen::{ErrorChoice, ErrorMenu},
     field_editor::{Field, FieldCursor},
     format::format_real,
@@ -58,7 +59,6 @@ impl Calculator {
             },
         }
     }
-
 
     fn functions_view(&self, cursor: YCursor) -> FunctionsView<'_> {
         let rows = self
