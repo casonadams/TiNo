@@ -1,8 +1,12 @@
-//! Evaluating expressions over real numbers.
+//! Evaluating expressions over real numbers and lists of them.
 
 mod arithmetic;
 mod calculus;
 mod calls;
+mod lists;
+mod value;
+
+pub use value::Value;
 
 use std::{
     cell::Cell,
@@ -16,7 +20,7 @@ use crate::{
     expr::{Constant, Expr},
     settings::Angle,
     table::TableSettings,
-    token::Letter,
+    token::{Letter, ListName},
     window::Window,
 };
 
@@ -25,12 +29,15 @@ const OVERFLOW: f64 = 1e100;
 /// Results smaller than this in magnitude are zero.
 const UNDERFLOW: f64 = 1e-99;
 
-/// The values expressions read: variables `A`-`Z`, `θ` and `Ans`, all 0 at
-/// first, and the state `rand` draws from.
+/// The values expressions read: variables `A`-`Z` and `θ`, all 0 at first;
+/// the lists `L₁`-`L₆`, empty at first; `Ans`; and the state `rand` draws
+/// from.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Memory {
     variables: [f64; 27],
-    ans: f64,
+    #[serde(default)]
+    lists: [Vec<f64>; 6],
+    ans: Value,
     #[serde(default)]
     random: Cell<u64>,
 }
@@ -39,7 +46,8 @@ impl Default for Memory {
     fn default() -> Self {
         Memory {
             variables: [0.0; 27],
-            ans: 0.0,
+            lists: Default::default(),
+            ans: Value::Real(0.0),
             random: Cell::new(0),
         }
     }
@@ -54,11 +62,19 @@ impl Memory {
         self.variables[letter as usize] = value;
     }
 
-    pub fn ans(&self) -> f64 {
-        self.ans
+    pub fn list(&self, name: ListName) -> &[f64] {
+        &self.lists[name as usize]
     }
 
-    pub fn set_ans(&mut self, value: f64) {
+    pub fn set_list(&mut self, name: ListName, list: Vec<f64>) {
+        self.lists[name as usize] = list;
+    }
+
+    pub fn ans(&self) -> &Value {
+        &self.ans
+    }
+
+    pub fn set_ans(&mut self, value: Value) {
         self.ans = value;
     }
 
@@ -86,19 +102,27 @@ pub struct Context<'a> {
 }
 
 impl Context<'_> {
-    /// `expr` over real numbers, trigonometry in the context's angle units.
-    pub fn evaluate(&self, expr: &Expr) -> Result<f64, CalcError> {
+    /// `expr`, trigonometry in the context's angle units.
+    pub fn evaluate(&self, expr: &Expr) -> Result<Value, CalcError> {
         Evaluator::new(self).value(expr)
+    }
+
+    /// `expr` as a real number; `ERR:DATA TYPE` when it is a list.
+    pub fn evaluate_real(&self, expr: &Expr) -> Result<f64, CalcError> {
+        Evaluator::new(self).real(expr)
     }
 
     /// `expr` at `X = x`, or `None` where it is undefined.
     pub fn y_at(&self, expr: &Expr, x: f64) -> Option<f64> {
-        Evaluator::new(self).with(Letter::X, x).value(expr).ok()
+        Evaluator::new(self).with(Letter::X, x).real(expr).ok()
     }
 
     /// Y= function `slot` at `X = x`.
     pub fn function_at(&self, slot: usize, x: f64) -> Result<f64, CalcError> {
-        Evaluator::new(self).with(Letter::X, x).y_var(slot, None)
+        Evaluator::new(self)
+            .with(Letter::X, x)
+            .y_var(slot, None)?
+            .real()
     }
 }
 
@@ -127,37 +151,67 @@ impl<'a> Evaluator<'a> {
         self
     }
 
-    fn value(&self, expr: &Expr) -> Result<f64, CalcError> {
+    fn value(&self, expr: &Expr) -> Result<Value, CalcError> {
         let memory = self.context.memory;
+        let real = |x: f64| Ok(Value::Real(x));
         let value = match expr {
-            Expr::Number(number) => Ok(number.value),
-            Expr::Constant(Constant::Pi) => Ok(PI),
-            Expr::Constant(Constant::E) => Ok(E),
+            Expr::Number(number) => real(number.value),
+            Expr::Constant(Constant::Pi) => real(PI),
+            Expr::Constant(Constant::E) => real(E),
             Expr::Variable(letter) => {
-                Ok(self.bound[*letter as usize].unwrap_or(memory.get(*letter)))
+                real(self.bound[*letter as usize].unwrap_or(memory.get(*letter)))
             }
-            Expr::Ans => Ok(memory.ans()),
-            Expr::Rand => Ok(memory.random()),
-            Expr::Window(field) => Ok(field.get(self.context.window)),
-            Expr::Table(field) => Ok(field.get(self.context.table)),
+            Expr::Ans => Ok(memory.ans().clone()),
+            Expr::Rand => real(memory.random()),
+            Expr::Window(field) => real(field.get(self.context.window)),
+            Expr::Table(field) => real(field.get(self.context.table)),
+            Expr::List(elements) => elements
+                .iter()
+                .map(|element| self.real(element))
+                .collect::<Result<_, _>>()
+                .map(Value::List),
+            Expr::ListName(name, index) => self.list_name(*name, index.as_deref()),
             Expr::YVar(slot, argument) => self.y_var(*slot, argument.as_deref()),
-            Expr::Negate(operand) => Ok(-self.value(operand)?),
-            Expr::ImpliedMultiply(left, right) => Ok(self.value(left)? * self.value(right)?),
+            Expr::Negate(operand) => self.value(operand)?.map(|x| Ok(-x)),
+            Expr::ImpliedMultiply(left, right) => {
+                self.value(left)?.zip(self.value(right)?, |a, b| Ok(a * b))
+            }
             Expr::Binary(op, left, right, at) => located(
-                arithmetic::binary(*op, self.value(left)?, self.value(right)?),
+                self.value(left)?
+                    .zip(self.value(right)?, |a, b| arithmetic::binary(*op, a, b)),
                 *at,
             ),
-            Expr::Postfix(op, operand, at) => {
-                located(arithmetic::postfix(*op, self.value(operand)?), *at)
-            }
+            Expr::Postfix(op, operand, at) => located(
+                self.value(operand)?.map(|x| arithmetic::postfix(*op, x)),
+                *at,
+            ),
             Expr::Call(function, arguments, at) => located(self.call(*function, arguments), *at),
         };
-        in_range(value?)
+        value?.map(in_range)
     }
 
-    /// Y= function `slot` at the current `X`, or at `argument`. Errors in
-    /// it have no place in the entry reading it.
-    fn y_var(&self, slot: usize, argument: Option<&Expr>) -> Result<f64, CalcError> {
+    fn real(&self, expr: &Expr) -> Result<f64, CalcError> {
+        self.value(expr)?.real()
+    }
+
+    /// A list by name, or its element at `index` (`L₁(2)`, counting from 1).
+    fn list_name(&self, name: ListName, index: Option<&Expr>) -> Result<Value, CalcError> {
+        let list = self.context.memory.list(name);
+        if list.is_empty() {
+            return fail(ErrorKind::InvalidDim);
+        }
+        let Some(index) = index else {
+            return Ok(Value::List(list.to_vec()));
+        };
+        let position = whole(self.real(index)?, 1.0..=list.len() as f64)
+            .map_err(|_| CalcError::new(ErrorKind::InvalidDim))?;
+        Ok(Value::Real(list[position as usize - 1]))
+    }
+
+    /// Y= function `slot` at the current `X`, or at `argument` (each of its
+    /// elements when it is a list). Errors in it have no place in the entry
+    /// reading it.
+    fn y_var(&self, slot: usize, argument: Option<&Expr>) -> Result<Value, CalcError> {
         let bit = 1 << slot;
         if self.active & bit != 0 {
             return fail(ErrorKind::Invalid);
@@ -167,16 +221,17 @@ impl<'a> Evaluator<'a> {
             Some(Err(error)) => return fail(error.kind),
             None => return fail(ErrorKind::Undefined),
         };
-        let mut inner = Evaluator {
+        let inner = Evaluator {
             active: self.active | bit,
             ..*self
         };
-        if let Some(argument) = argument {
-            inner = inner.with(Letter::X, self.value(argument)?);
-        }
-        inner
-            .value(function)
-            .map_err(|error| CalcError::new(error.kind))
+        let result = match argument {
+            None => inner.real(function).map(Value::Real),
+            Some(argument) => self
+                .value(argument)?
+                .map(|x| inner.with(Letter::X, x).real(function)),
+        };
+        result.map_err(|error| CalcError::new(error.kind))
     }
 }
 
@@ -194,9 +249,11 @@ fn in_range(value: f64) -> Result<f64, CalcError> {
     Ok(if value.abs() < UNDERFLOW { 0.0 } else { value })
 }
 
-/// An operation's result in range, its error placed at the operation's token.
-fn located(result: Result<f64, CalcError>, at: usize) -> Result<f64, CalcError> {
-    result.and_then(in_range).map_err(|error| error.or_at(at))
+/// An operation's result, its error placed at the operation's token.
+fn located(result: Result<Value, CalcError>, at: usize) -> Result<Value, CalcError> {
+    result
+        .and_then(|value| value.map(in_range))
+        .map_err(|error| error.or_at(at))
 }
 
 /// `value` as an integer, or a domain error when it has a fractional part

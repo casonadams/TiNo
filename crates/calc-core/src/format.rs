@@ -1,13 +1,14 @@
 use crate::{
+    eval::Value,
     settings::{Decimals, Notation, Settings},
     token::{Digit, Token},
-    vocabulary::Operator,
+    vocabulary::{DisplayAs, Operator},
 };
 
 /// Significant digits a result shows at most.
 const DIGITS: i32 = 10;
 
-/// The tokens that type a formatted result (`⁻1.5ᴇ3`, `⁻3/4`).
+/// The tokens that type a formatted result (`⁻1.5ᴇ3`, `⁻3/4`, `{1 2}`).
 pub fn result_tokens(text: &str) -> Vec<Token> {
     const DIGITS: [Digit; 10] = [
         Digit::Zero,
@@ -27,9 +28,29 @@ pub fn result_tokens(text: &str) -> Vec<Token> {
             '⁻' => Some(Token::Negate),
             'ᴇ' => Some(Token::Exponent),
             '/' => Some(Token::Op(Operator::Divide)),
+            '{' => Some(Token::LeftBrace),
+            '}' => Some(Token::RightBrace),
+            ' ' => Some(Token::Comma),
             c => c.to_digit(10).map(|d| Token::Digit(DIGITS[d as usize])),
         })
         .collect()
+}
+
+/// A result as the home screen shows it: a number as `format_real` (or
+/// `format_fraction` after `►Frac`) writes it, a list as its elements
+/// between braces (`{1 2.5 ⁻3}`).
+pub fn format_value(value: &Value, settings: Settings, display: Option<DisplayAs>) -> String {
+    let number = |x: f64| match display {
+        Some(DisplayAs::Fraction) => format_fraction(x, settings),
+        _ => format_real(x, settings),
+    };
+    match value {
+        Value::Real(x) => number(*x),
+        Value::List(list) => {
+            let elements: Vec<String> = list.iter().map(|&x| number(x)).collect();
+            format!("{{{}}}", elements.join(" "))
+        }
+    }
 }
 
 /// A result as the calculator shows it under `settings`: at most 10

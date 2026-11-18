@@ -1,9 +1,9 @@
-//! The MATH, TEST and VARS menus: tabs of items, each typing one token into
-//! the entry the menu was opened from.
+//! The MATH, TEST, VARS and LIST menus: tabs of items, each typing one token
+//! into the entry the menu was opened from.
 
 use crate::{
     table::TableField,
-    token::Token,
+    token::{ListName, Token},
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
     window_editor::WindowField,
 };
@@ -17,6 +17,8 @@ pub enum MenuKind {
     Test,
     /// VARS: WINDOW and TBLSET settings, and the Y= functions.
     Vars,
+    /// 2nd LIST: the list names, OPS and MATH, numbered as on the calculator.
+    List,
 }
 
 /// One item: the key that picks it, its label, and what it types.
@@ -150,12 +152,50 @@ const VARS: [MenuTab; 3] = [
     },
 ];
 
+const LIST: [MenuTab; 3] = [
+    MenuTab {
+        title: "NAMES",
+        entries: &[
+            entry('1', "L₁", Token::List(ListName::L1)),
+            entry('2', "L₂", Token::List(ListName::L2)),
+            entry('3', "L₃", Token::List(ListName::L3)),
+            entry('4', "L₄", Token::List(ListName::L4)),
+            entry('5', "L₅", Token::List(ListName::L5)),
+            entry('6', "L₆", Token::List(ListName::L6)),
+        ],
+    },
+    MenuTab {
+        title: "OPS",
+        entries: &[
+            function('3', Function::Dim),
+            function('5', Function::Seq),
+            function('6', Function::CumSum),
+            function('7', Function::DeltaList),
+            function('9', Function::Augment),
+        ],
+    },
+    MenuTab {
+        title: "MATH",
+        entries: &[
+            function('1', Function::Min),
+            function('2', Function::Max),
+            function('3', Function::Mean),
+            function('4', Function::Median),
+            function('5', Function::Sum),
+            function('6', Function::Prod),
+            function('7', Function::StdDev),
+            function('8', Function::Variance),
+        ],
+    },
+];
+
 impl MenuKind {
     pub fn tabs(self) -> &'static [MenuTab] {
         match self {
             MenuKind::Math => &MATH,
             MenuKind::Test => &TEST,
             MenuKind::Vars => &VARS,
+            MenuKind::List => &LIST,
         }
     }
 }

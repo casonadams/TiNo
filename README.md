@@ -25,13 +25,16 @@ Texas Instruments.
 - **CALC (2nd TRACE)**: value, zero, minimum, maximum, intersect, dy/dx and ∫f(x)dx (shaded); mark bounds, curves
   and guesses with the trace cursor and ENTER.
 - **TABLE and TBLSET**: X from TblStart by ΔTbl beside the graphed functions; wheel or drag to scroll.
+- **Lists**: `{1,2,3}`, L₁–L₆ (2nd 1–6; `→L₁` stores, `L₁(2)` reads an element), math element by element (`2L₁+1`,
+  `sin(L₁)`, `Y₁(L₁)`), and 2nd LIST: names; OPS dim(, seq(, cumSum(, ΔList(, augment(; MATH min(, max(, mean(,
+  median(, sum(, prod(, stdDev(, variance(.
 - **Kept between visits**: memory, settings, functions, window, table and FORMAT settings, history and the skin, in the
   browser's local storage.
 - **Settings (ON)**: ON opens a settings screen for the skin, Color (the default) or Classic, and key haptics, On
   (the default) or Off; tap an option or use ▲ ▼ ◀ ▶, then ON, CLEAR or ENTER to return. Haptics vibrate on Android
   browsers and use Safari's switch-control feedback on iPhones (iOS 18+); desktop browsers have none.
 
-Not yet: lists, statistics, matrices, complex numbers and programs.
+Not yet: statistics (STAT), matrices, complex numbers and programs.
 Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.
 
 ### Computer keyboard

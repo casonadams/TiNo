@@ -108,6 +108,19 @@ pub enum Function {
     FnInt,
     /// `Σ(expression, variable, start, end)`.
     Summation,
+    /// The LIST functions: length, sums, statistics, running sums and
+    /// differences, joining, and `seq(expression, variable, start, end[, step])`.
+    Dim,
+    Sum,
+    Prod,
+    Mean,
+    Median,
+    StdDev,
+    Variance,
+    CumSum,
+    DeltaList,
+    Augment,
+    Seq,
 }
 
 impl Function {
@@ -143,23 +156,33 @@ impl Function {
             Function::NDeriv => "nDeriv(",
             Function::FnInt => "fnInt(",
             Function::Summation => "Σ(",
+            Function::Dim => "dim(",
+            Function::Sum => "sum(",
+            Function::Prod => "prod(",
+            Function::Mean => "mean(",
+            Function::Median => "median(",
+            Function::StdDev => "stdDev(",
+            Function::Variance => "variance(",
+            Function::CumSum => "cumSum(",
+            Function::DeltaList => "ΔList(",
+            Function::Augment => "augment(",
+            Function::Seq => "seq(",
         }
     }
 
     /// How many arguments the function takes: at least, at most.
     pub fn arity(self) -> (usize, usize) {
         match self {
-            Function::Round => (1, 2),
+            Function::Round | Function::Min | Function::Max => (1, 2),
             Function::LogBase
-            | Function::Min
-            | Function::Max
             | Function::Lcm
             | Function::Gcd
             | Function::Remainder
-            | Function::RandInt => (2, 2),
+            | Function::RandInt
+            | Function::Augment => (2, 2),
             Function::NDeriv => (3, 4),
             Function::Summation => (4, 4),
-            Function::FMin | Function::FMax | Function::FnInt => (4, 5),
+            Function::FMin | Function::FMax | Function::FnInt | Function::Seq => (4, 5),
             _ => (1, 1),
         }
     }
@@ -174,6 +197,7 @@ impl Function {
                 | Function::NDeriv
                 | Function::FnInt
                 | Function::Summation
+                | Function::Seq
         )
     }
 }

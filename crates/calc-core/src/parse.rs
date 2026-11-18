@@ -1,7 +1,7 @@
 use crate::{
     error::{CalcError, ErrorKind},
-    expr::{Constant, Expr, Number, Precedence, Statement},
-    token::{Letter, Token},
+    expr::{Constant, Expr, Number, Precedence, Statement, StoreTarget},
+    token::Token,
     vocabulary::{DisplayAs, Operator},
 };
 
@@ -58,13 +58,14 @@ impl Parser<'_> {
         Some(display)
     }
 
-    fn store_target(&mut self) -> Result<Option<Letter>, CalcError> {
+    fn store_target(&mut self) -> Result<Option<StoreTarget>, CalcError> {
         if !self.eat(Token::Store) {
             return Ok(None);
         }
         let target = self.pos;
         match self.advance() {
-            Some(Token::Letter(letter)) => Ok(Some(letter)),
+            Some(Token::Letter(letter)) => Ok(Some(StoreTarget::Variable(letter))),
+            Some(Token::List(name)) => Ok(Some(StoreTarget::List(name))),
             _ => Err(CalcError::at(ErrorKind::Syntax, target)),
         }
     }
@@ -161,6 +162,8 @@ impl Parser<'_> {
         match token {
             Token::Func(function) => Ok(Expr::Call(function, self.arguments()?, at)),
             Token::YVar(slot) => self.y_var(slot),
+            Token::List(name) => Ok(Expr::ListName(name, self.index()?)),
+            Token::LeftBrace => self.list(),
             Token::LeftParen => self.group(),
             _ => atom(token).ok_or_else(|| CalcError::at(unexpected(token), at)),
         }
@@ -168,12 +171,31 @@ impl Parser<'_> {
 
     /// A Y= function, its token consumed: `Y₁(3)` at 3 when a `(` follows.
     fn y_var(&mut self, slot: usize) -> Result<Expr, CalcError> {
-        let argument = if self.eat(Token::LeftParen) {
-            Some(Box::new(self.group()?))
+        Ok(Expr::YVar(slot, self.index()?))
+    }
+
+    /// A parenthesized argument right after a name (`Y₁(3)`, `L₁(2)`), if any.
+    fn index(&mut self) -> Result<Option<Box<Expr>>, CalcError> {
+        if self.eat(Token::LeftParen) {
+            Ok(Some(Box::new(self.group()?)))
         } else {
-            None
-        };
-        Ok(Expr::YVar(slot, argument))
+            Ok(None)
+        }
+    }
+
+    /// A list's comma-separated elements, its `{` consumed; the `}` may be
+    /// left out where a `)` may.
+    fn list(&mut self) -> Result<Expr, CalcError> {
+        let mut elements = vec![self.expression()?];
+        while self.eat(Token::Comma) {
+            elements.push(self.expression()?);
+        }
+        match self.peek() {
+            Some(Token::RightBrace) => self.pos += 1,
+            None | Some(Token::Store | Token::Display(_)) => {}
+            Some(_) => return Err(self.error(ErrorKind::Syntax)),
+        }
+        Ok(Expr::List(elements))
     }
 
     /// The inside of a parenthesis whose `(` was consumed.
@@ -273,7 +295,12 @@ fn starts_implied_factor(token: Token) -> bool {
     starts_number(token)
         || matches!(
             token,
-            Token::Negate | Token::Func(_) | Token::YVar(_) | Token::LeftParen
+            Token::Negate
+                | Token::Func(_)
+                | Token::YVar(_)
+                | Token::List(_)
+                | Token::LeftBrace
+                | Token::LeftParen
         )
         || atom(token).is_some()
 }
@@ -297,8 +324,6 @@ fn atom(token: Token) -> Option<Expr> {
 fn unexpected(token: Token) -> ErrorKind {
     match token {
         Token::ImaginaryI
-        | Token::List(_)
-        | Token::LeftBrace
         | Token::LeftBracket
         | Token::SequenceU
         | Token::SequenceV
@@ -315,7 +340,7 @@ fn unexpected(token: Token) -> ErrorKind {
 pub(crate) mod tests {
     use super::*;
     use crate::{
-        token::{Digit, ListName},
+        token::{Digit, Letter, ListName},
         vocabulary::{Function, PostfixOp},
     };
 
@@ -323,8 +348,8 @@ pub(crate) mod tests {
     /// `()`, `,`, `E` exponent, `p` π, `²`, `³`, `!` inverse, `f` factorial,
     /// `→` store, `=<>` relations, `&` and, `|` or, `A`-`D`, `K` and `X`
     /// letters, `a` Ans, `s` sin(, `r` √(, `m` max(, `R` round(, `F` ►Frac,
-    /// `L` L₁, `d` nDeriv(, `i` fnInt(, `n` fMin(, `x` fMax(, `S` Σ(, `y` Y₁,
-    /// `z` Y₂, `w` Xmin, `t` ΔTbl.
+    /// `L` L₁, `N` L₂, `{}` braces, `u` sum(, `q` seq(, `d` nDeriv(, `i` fnInt(,
+    /// `n` fMin(, `x` fMax(, `S` Σ(, `y` Y₁, `z` Y₂, `w` Xmin, `t` ΔTbl.
     pub(crate) fn tokens(spelling: &str) -> Vec<Token> {
         spelling.chars().map(token_for).collect()
     }
@@ -399,10 +424,16 @@ pub(crate) mod tests {
             'S' => Token::Func(Function::Summation),
             'F' => Token::Display(DisplayAs::Fraction),
             'L' => Token::List(ListName::L1),
+            'N' => Token::List(ListName::L2),
+            '{' => Token::LeftBrace,
+            '}' => Token::RightBrace,
+            'u' => Token::Func(Function::Sum),
+            'q' => Token::Func(Function::Seq),
             'y' => Token::YVar(0),
             'z' => Token::YVar(1),
             'w' => Token::Window(crate::window_editor::WindowField::XMin),
             't' => Token::Table(crate::table::TableField::Step),
+            '[' => Token::LeftBracket,
             _ => return None,
         })
     }
@@ -435,13 +466,13 @@ pub(crate) mod tests {
 
     #[test]
     fn syntax_not_evaluated_yet_is_reported_as_unsupported() {
-        assert_eq!(error_of("2+L").kind, ErrorKind::Unsupported);
+        assert_eq!(error_of("2+[").kind, ErrorKind::Unsupported);
     }
 
     #[test]
     fn a_trailing_store_names_the_variable_after_any_display_conversion() {
         let statement = parse(&tokens("5F→B")).unwrap();
-        assert_eq!(statement.store, Some(Letter::B));
+        assert_eq!(statement.store, Some(StoreTarget::Variable(Letter::B)));
         assert_eq!(statement.display, Some(DisplayAs::Fraction));
     }
 

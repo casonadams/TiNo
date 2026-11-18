@@ -2,13 +2,13 @@ use super::{Calculator, HOME, HomeState, View, error_view};
 use crate::{
     error::CalcError,
     error_screen::ErrorOrigin,
-    format::{format_fraction, format_real},
+    expr::StoreTarget,
+    format::format_value,
     home::{HistorySelection, Output},
     keymap::{Action, Command, Edit},
     latex,
     parse::parse,
     token::Token,
-    vocabulary::DisplayAs,
 };
 
 impl Calculator {
@@ -84,14 +84,13 @@ impl Calculator {
     fn run(&mut self, entry: &[Token]) -> Result<Output, CalcError> {
         let statement = parse(entry)?;
         let value = self.context().evaluate(&statement.expr)?;
-        if let Some(letter) = statement.store {
-            self.memory.set(letter, value);
+        match statement.store {
+            Some(StoreTarget::Variable(letter)) => self.memory.set(letter, value.clone().real()?),
+            Some(StoreTarget::List(name)) => self.memory.set_list(name, value.clone().list()?),
+            None => {}
         }
+        let result = format_value(&value, self.settings, statement.display);
         self.memory.set_ans(value);
-        let result = match statement.display {
-            Some(DisplayAs::Fraction) => format_fraction(value, self.settings),
-            _ => format_real(value, self.settings),
-        };
         Ok(Output {
             entry: entry.to_vec(),
             latex: latex::statement(&statement),

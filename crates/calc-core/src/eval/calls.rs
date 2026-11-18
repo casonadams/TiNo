@@ -1,4 +1,9 @@
-use super::{Evaluator, arithmetic, fail, whole};
+use super::{
+    Evaluator, arithmetic, fail,
+    lists::list_function,
+    value::{Value, broadcast},
+    whole,
+};
 use crate::{
     error::{CalcError, ErrorKind},
     expr::Expr,
@@ -12,9 +17,9 @@ const MOST_PLACES: f64 = 9.0;
 const LARGEST_INTEGER: f64 = 1e12;
 
 impl Evaluator<'_> {
-    /// `function` applied to `arguments`; an argument count it does not take
-    /// is `ERR:ARGUMENT`.
-    pub(super) fn call(&self, function: Function, arguments: &[Expr]) -> Result<f64, CalcError> {
+    /// `function` applied to `arguments`, element by element where they are
+    /// lists; an argument count it does not take is `ERR:ARGUMENT`.
+    pub(super) fn call(&self, function: Function, arguments: &[Expr]) -> Result<Value, CalcError> {
         let (least, most) = function.arity();
         if !(least..=most).contains(&arguments.len()) {
             return fail(ErrorKind::Argument);
@@ -26,11 +31,14 @@ impl Evaluator<'_> {
             .iter()
             .map(|argument| self.value(argument))
             .collect::<Result<Vec<_>, _>>()?;
-        match values[..] {
+        if let Some(result) = list_function(function, &values) {
+            return result;
+        }
+        broadcast(&values, |reals| match *reals {
             [x] if least == 1 => self.unary(function, x),
             [a, b] => self.binary(function, (a, b)),
             _ => fail(ErrorKind::Argument),
-        }
+        })
     }
 
     fn unary(&self, function: Function, x: f64) -> Result<f64, CalcError> {

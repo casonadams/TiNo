@@ -109,7 +109,7 @@ impl Calculator {
     /// The X typed for value, which must lie in the window.
     fn x_value(&self, entry: &[Token]) -> Result<f64, CalcError> {
         let statement = parse(entry)?;
-        let x = self.context().evaluate(&statement.expr)?;
+        let x = self.context().evaluate_real(&statement.expr)?;
         if (self.window.x_min..=self.window.x_max).contains(&x) {
             Ok(x)
         } else {

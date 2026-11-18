@@ -71,7 +71,7 @@ impl<F: Field> FieldCursor<F> {
         if statement.store.is_some() {
             return Err(CalcError::new(ErrorKind::Syntax));
         }
-        context.evaluate(&statement.expr).map(Some)
+        context.evaluate_real(&statement.expr).map(Some)
     }
 }
 

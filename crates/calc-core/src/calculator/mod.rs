@@ -252,6 +252,7 @@ fn menu_of(command: Command) -> Option<MenuKind> {
         Command::Math => Some(MenuKind::Math),
         Command::Test => Some(MenuKind::Test),
         Command::Vars => Some(MenuKind::Vars),
+        Command::List => Some(MenuKind::List),
         _ => None,
     }
 }

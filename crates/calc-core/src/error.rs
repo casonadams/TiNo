@@ -18,6 +18,12 @@ pub enum ErrorKind {
     Invalid,
     /// CALC zero or intersect found no sign change to close in on.
     NoSignChange,
+    /// A list where a number belongs, or the other way round.
+    DataType,
+    /// Lists of different lengths combined element by element.
+    DimMismatch,
+    /// A list element that does not exist, or an empty list.
+    InvalidDim,
     /// A WINDOW whose ranges do not increase or whose Xres is not 1 to 8.
     WindowRange,
     /// Valid calculator syntax that this calculator does not evaluate yet.
@@ -66,6 +72,9 @@ impl CalcError {
             ErrorKind::Undefined => "ERR:UNDEFINED",
             ErrorKind::Invalid => "ERR:INVALID",
             ErrorKind::NoSignChange => "ERR:NO SIGN CHNG",
+            ErrorKind::DataType => "ERR:DATA TYPE",
+            ErrorKind::DimMismatch => "ERR:DIM MISMATCH",
+            ErrorKind::InvalidDim => "ERR:INVALID DIM",
             ErrorKind::WindowRange => "ERR:WINDOW RANGE",
             ErrorKind::Unsupported => "ERR:UNSUPPORTED",
         }

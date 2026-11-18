@@ -9,7 +9,7 @@ use crate::{
 
 /// `entry` evaluated with `memory`, a standard window, default TBLSET and
 /// `functions` as Y₁, Y₂, ….
-fn value_in(entry: &[Token], memory: &Memory, functions: &[&str]) -> Result<f64, CalcError> {
+fn evaluated(entry: &[Token], memory: &Memory, functions: &[&str]) -> Result<Value, CalcError> {
     let context = Context {
         memory,
         angle: Angle::Radian,
@@ -21,6 +21,10 @@ fn value_in(entry: &[Token], memory: &Memory, functions: &[&str]) -> Result<f64,
             .collect(),
     };
     context.evaluate(&parse(entry).unwrap().expr)
+}
+
+fn value_in(entry: &[Token], memory: &Memory, functions: &[&str]) -> Result<f64, CalcError> {
+    evaluated(entry, memory, functions)?.real()
 }
 
 fn value_with(spelling: &str, functions: &[&str]) -> Result<f64, CalcError> {
@@ -158,7 +162,7 @@ fn rand_stays_strictly_between_zero_and_one_and_moves_on() {
 fn reads_variables_and_ans() {
     let mut memory = Memory::default();
     memory.set(Letter::A, 3.0);
-    memory.set_ans(10.0);
+    memory.set_ans(Value::Real(10.0));
     assert_eq!(value_of("2A+a", &memory), Ok(16.0));
     assert_eq!(value_of("AB", &memory), Ok(0.0));
 }
@@ -177,7 +181,8 @@ fn reports_the_calculators_errors() {
         ("E100", ErrorKind::Overflow),
         ("2.5f", ErrorKind::Domain),
         ("70f", ErrorKind::Domain),
-        ("m1", ErrorKind::Argument),
+        ("m1", ErrorKind::DataType),
+        ("m1,2,3", ErrorKind::Argument),
         ("R1,2,3", ErrorKind::Argument),
         ("R1,10", ErrorKind::Domain),
     ];
@@ -256,4 +261,40 @@ fn evaluation_errors_point_at_the_failing_operation() {
     assert_eq!(at("1+1/0"), Some(3));
     assert_eq!(at("2+r(_4"), Some(2));
     assert_eq!(at("(_2)^.5*3"), Some(4));
+}
+
+fn list_of(spelling: &str, memory: &Memory) -> Result<Value, CalcError> {
+    evaluated(&tokens(spelling), memory, &[])
+}
+
+#[test]
+fn lists_combine_element_by_element_with_numbers_and_each_other() {
+    let mut memory = Memory::default();
+    memory.set_list(ListName::L1, vec![1.0, 2.0, 3.0]);
+    let list = |elements: &[f64]| Value::List(elements.to_vec());
+    let cases = [
+        ("{1,2,3}+10", list(&[11.0, 12.0, 13.0])),
+        ("L²", list(&[1.0, 4.0, 9.0])),
+        ("L+{1,1,1}", list(&[2.0, 3.0, 4.0])),
+        ("2L", list(&[2.0, 4.0, 6.0])),
+        ("r({4,9", list(&[2.0, 3.0])),
+        ("mL,2", list(&[2.0, 2.0, 3.0])),
+        ("L(2", Value::Real(2.0)),
+        ("uL", Value::Real(6.0)),
+        ("qK²,K,1,4", list(&[1.0, 4.0, 9.0, 16.0])),
+    ];
+    for (spelling, expected) in cases {
+        assert_eq!(list_of(spelling, &memory), Ok(expected), "{spelling}");
+    }
+}
+
+#[test]
+fn list_errors_name_the_problem() {
+    let mut memory = Memory::default();
+    memory.set_list(ListName::L1, vec![1.0, 2.0]);
+    let kind = |spelling: &str| list_of(spelling, &memory).unwrap_err().kind;
+    assert_eq!(kind("L+{1,2,3}"), ErrorKind::DimMismatch);
+    assert_eq!(kind("L(3"), ErrorKind::InvalidDim);
+    assert_eq!(kind("N"), ErrorKind::InvalidDim);
+    assert_eq!(kind("{1,{2"), ErrorKind::DataType);
 }

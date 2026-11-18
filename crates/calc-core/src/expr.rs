@@ -1,6 +1,6 @@
 use crate::{
     table::TableField,
-    token::Letter,
+    token::{Letter, ListName},
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
     window_editor::WindowField,
 };
@@ -20,6 +20,10 @@ pub enum Expr {
     Table(TableField),
     /// A Y= function by slot: at the current `X`, or at its argument (`Y₁(3)`).
     YVar(usize, Option<Box<Expr>>),
+    /// A list written out: `{1,2,3}`.
+    List(Vec<Expr>),
+    /// A stored list by name, or its element at the index (`L₁(2)`).
+    ListName(ListName, Option<Box<Expr>>),
     Negate(Box<Expr>),
     Postfix(PostfixOp, Box<Expr>, usize),
     Binary(Operator, Box<Expr>, Box<Expr>, usize),
@@ -43,12 +47,19 @@ pub enum Constant {
 }
 
 /// A whole entry: an expression, optionally converted for display (`►Frac`)
-/// and stored into a variable (`→A`).
+/// and stored (`→A`, `→L₁`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Statement {
     pub expr: Expr,
     pub display: Option<DisplayAs>,
-    pub store: Option<Letter>,
+    pub store: Option<StoreTarget>,
+}
+
+/// Where `→` stores: a variable takes a number, a list name a list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoreTarget {
+    Variable(Letter),
+    List(ListName),
 }
 
 /// Binding strength, loosest first, in the calculator's order: `or` and
