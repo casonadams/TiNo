@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{borrow::Cow, collections::VecDeque};
 
 use crate::{
     error_screen::ErrorChoice,
@@ -25,6 +25,11 @@ pub struct Screen<'a> {
     /// The settings in force, as the status bar shows them (`NORMAL FLOAT REAL RADIAN`).
     pub status: [String; 4],
     pub cursor_style: CursorStyle,
+    /// Whether a program is running, busy or waiting for a key; ON breaks it.
+    pub running: bool,
+    /// Whether a running program is busy, not waiting for a key:
+    /// `Calculator::resume` carries it on.
+    pub busy: bool,
     pub view: ScreenView<'a>,
 }
 
@@ -48,6 +53,7 @@ pub enum ScreenView<'a> {
     Table(TableView),
     Graph(Box<GraphView>),
     Menu(MenuView),
+    Program(ProgramView<'a>),
 }
 
 /// The home screen: evaluated entries over the entry line, with the entry
@@ -58,6 +64,8 @@ pub struct HomeView<'a> {
     pub entry: &'a [Token],
     pub cursor: usize,
     pub selected: Option<HistorySelection>,
+    /// The prompt before the entry while a program waits for input (`A=?`).
+    pub prompt: Option<&'a str>,
 }
 
 /// An options screen, MODE or FORMAT: a line per setting.
@@ -202,8 +210,22 @@ pub struct MenuView {
 }
 
 /// A menu item and the key that picks it (`1`, `0`, `A`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MenuItemView {
     pub key: char,
-    pub label: &'static str,
+    pub label: Cow<'static, str>,
+}
+
+/// The program editor: `PROGRAM:NAME` and the program's lines, the line
+/// being edited with its cursor.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProgramView<'a> {
+    pub title: String,
+    pub lines: Vec<ProgramLineView<'a>>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProgramLineView<'a> {
+    pub entry: &'a [Token],
+    pub cursor: Option<usize>,
 }

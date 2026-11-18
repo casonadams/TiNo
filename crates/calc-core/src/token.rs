@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub use crate::vocabulary::{DisplayAs, Function, Operator, PostfixOp};
+pub use crate::vocabulary::{DisplayAs, Function, Keyword, Operator, PostfixOp};
 use crate::{field_editor::Field, table::TableField, window_editor::WindowField};
 
 /// A named variable: `A` to `Z` and `θ`.
@@ -41,6 +41,36 @@ const LETTER_SYMBOLS: [&str; 27] = [
 ];
 
 impl Letter {
+    pub const ALL: [Letter; 27] = [
+        Letter::A,
+        Letter::B,
+        Letter::C,
+        Letter::D,
+        Letter::E,
+        Letter::F,
+        Letter::G,
+        Letter::H,
+        Letter::I,
+        Letter::J,
+        Letter::K,
+        Letter::L,
+        Letter::M,
+        Letter::N,
+        Letter::O,
+        Letter::P,
+        Letter::Q,
+        Letter::R,
+        Letter::S,
+        Letter::T,
+        Letter::U,
+        Letter::V,
+        Letter::W,
+        Letter::X,
+        Letter::Y,
+        Letter::Z,
+        Letter::Theta,
+    ];
+
     pub fn symbol(self) -> &'static str {
         LETTER_SYMBOLS[self as usize]
     }
@@ -59,6 +89,21 @@ pub enum Digit {
     Seven,
     Eight,
     Nine,
+}
+
+impl Digit {
+    pub const ALL: [Digit; 10] = [
+        Digit::Zero,
+        Digit::One,
+        Digit::Two,
+        Digit::Three,
+        Digit::Four,
+        Digit::Five,
+        Digit::Six,
+        Digit::Seven,
+        Digit::Eight,
+        Digit::Nine,
+    ];
 }
 
 /// A built-in list, `L₁` to `L₆`.
@@ -160,6 +205,10 @@ pub enum Token {
     Table(TableField),
     /// A Y= function from VARS by slot (`Y₁` is slot 0, `Y₀` slot 9).
     YVar(usize),
+    /// `prgm`, followed by a program's name to run it.
+    Prgm,
+    /// A program command from the editor's PRGM menu (`If `, `Disp `).
+    Keyword(Keyword),
 }
 
 const Y_VAR_NAMES: [&str; 10] = ["Y₁", "Y₂", "Y₃", "Y₄", "Y₅", "Y₆", "Y₇", "Y₈", "Y₉", "Y₀"];
@@ -204,6 +253,8 @@ impl Token {
             Token::Window(field) => field.label(),
             Token::Table(field) => field.label(),
             Token::YVar(slot) => Y_VAR_NAMES[slot % Y_VAR_NAMES.len()],
+            Token::Prgm => "prgm",
+            Token::Keyword(keyword) => keyword.text(),
         }
     }
 

@@ -37,14 +37,18 @@ Texas Instruments.
 - **Complex numbers**: i (2nd .) in any mode (`(3+4i)(1−2i)` is `11−2i`); in a+bi and re^θi a nonreal answer
   (`√(⁻4)`, `ln(⁻1)`) is complex instead of `ERR:NONREAL ANSWER`. MATH CPX conj(, real(, imag(, angle(, abs(, ►Rect,
   ►Polar. Lists, matrices and variables A–θ hold real numbers only; Ans keeps a complex result.
-- **Kept between visits**: memory, settings, functions, window, table and FORMAT settings, history and the skin, in the
-  browser's local storage.
+- **Programs (PRGM)**: NEW names a program (ALPHA locked), EDIT opens it line by line (▲ ▼, ENTER adds a line, DEL
+  on an empty line removes it), and PRGM in the editor types CTL If, Then, Else, For(, While, Repeat, End, Pause,
+  prgm, Stop and I/O Input, Prompt, Disp, ClrHome; `:` separates instructions on a line. EXEC types `prgmNAME`;
+  ENTER runs it, waiting at Input, Prompt and Pause, and ON breaks it. Errors Goto the program line.
+- **Kept between visits**: memory, settings, functions, window, table and FORMAT settings, history, programs and the
+  skin, in the browser's local storage.
 - **Settings (ON)**: ON opens a settings screen for the skin, Color (the default) or Classic, and key haptics, On
   (the default) or Off; tap an option or use ▲ ▼ ◀ ▶, then ON, CLEAR or ENTER to return. Haptics vibrate on Android
   browsers and use Safari's switch-control feedback on iPhones (iOS 18+); desktop browsers have none.
 
-Not yet: programs.
-Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.
+Not yet: STAT PLOT, DRAW, DISTR, ANGLE, APPS, CATALOG, MEM, RCL, LINK, the ALPHA F1–F5 shortcuts and sequence
+graphing (u, v, w). Their keys do nothing; syntax that needs them shows `ERR:UNSUPPORTED`.
 
 ### Computer keyboard
 

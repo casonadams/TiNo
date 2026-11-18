@@ -9,6 +9,7 @@ import { GraphView } from "./screens/GraphView";
 import { HomeView } from "./screens/HomeView";
 import { MenuView } from "./screens/MenuView";
 import { ModeView } from "./screens/ModeView";
+import { ProgramView } from "./screens/ProgramView";
 import { SettingsView } from "./screens/SettingsView";
 import { TableView } from "./screens/TableView";
 
@@ -50,6 +51,9 @@ export function Lcd(props: { screen: () => Screen; settingsOpen: () => boolean }
       <If when={props.screen().table}>{(table) => <TableView table={table} cursorStyle={cursorStyle} />}</If>
       <If when={props.screen().graph}>{(graph) => <GraphView graph={graph} cursorStyle={cursorStyle} />}</If>
       <If when={props.screen().menu}>{(menu) => <MenuView menu={menu} />}</If>
+      <If when={props.screen().program}>
+        {(program) => <ProgramView program={program} cursorStyle={cursorStyle} />}
+      </If>
     </View>
   );
   return (

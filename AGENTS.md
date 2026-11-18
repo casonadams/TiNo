@@ -15,9 +15,12 @@ Three layers; dependencies point down only.
 - `Calculator::press(Key)` is the single entry for key presses; `Calculator::screen()` is the single view model.
   Gestures enter through `pan_graph`, `zoom_graph`, `trace_at` and `scroll_table`, all taking fractions, never pixels.
 - Each screen has a state type (`ModeCursor`, `ErrorMenu`, `YCursor`, `FieldCursor<F>`, `TableCursor`,
-  `TraceCursor`, `ListMenu`, `GridEditor`) and a handler in `crates/calc-core/src/calculator/`. The screen keys (Y=,
-  WINDOW, ZOOM, TRACE, GRAPH, TBLSET, TABLE, MODE, 2nd QUIT) are routed in `calculator/mod.rs` and work from every
-  screen but the error screen.
+  `TraceCursor`, `ListMenu`, `GridEditor`, `ProgramCursor`, `Run`) and a handler in `crates/calc-core/src/calculator/`.
+  The screen keys (Y=, WINDOW, ZOOM, TRACE, GRAPH, TBLSET, TABLE, MODE, 2nd QUIT) are routed in `calculator/mod.rs`
+  and work from every screen but the error screen and a running program.
+- Programs compile (`program.rs`) into steps with resolved jumps; `calculator/run.rs` runs a slice of steps per
+  call. While `Screen.busy`, `app/store.ts` calls `Calculator.resume()` after each update, so ON (sent to the core
+  while `Screen.running`) can break a program that never ends.
 - Storage is the app's job: `app/store.ts` saves `Calculator.save()` under `tino.calculator` after every change and
   restores it on start; `app/skinStore.ts` keeps the skin under `tino.skin`. Rust's `nsh_core::storage` is not
   reachable from class methods called by TSX.

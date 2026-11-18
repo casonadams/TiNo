@@ -11,7 +11,8 @@ pub use graphing::{
 };
 use nsh_core::prelude::*;
 pub use screen::{
-    CursorStyle, ErrorScreen, HistoryLine, HomeScreen, ModeRow, ModeScreen, Screen, ScreenKind,
+    CursorStyle, ErrorScreen, HistoryLine, HomeScreen, ModeRow, ModeScreen, ProgramLine,
+    ProgramScreen, Screen, ScreenKind,
 };
 
 /// A point given as fractions of the graph: `x` of its width from the left,
@@ -92,6 +93,13 @@ impl Calculator {
     pub fn scroll_table(&mut self, rows: i32) -> Screen {
         self.core.scroll_table(i64::from(rows));
         self.screen()
+    }
+
+    /// Carries on a running program for a while; the screen after it.
+    /// Call it again while the screen says `busy`.
+    pub fn resume(&mut self) -> Screen {
+        self.core.resume();
+        self.core.screen().into()
     }
 
     /// What the screen shows now.

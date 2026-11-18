@@ -5,7 +5,7 @@ use nsh_core::prelude::*;
 
 use crate::graphing::{
     FieldsScreen, FunctionsScreen, GraphScreen, MenuScreen, TableScreen, fields_screen,
-    functions_screen, graph_screen, menu_screen, table_screen,
+    functions_screen, graph_screen, menu_screen, table_screen, texts,
 };
 
 /// What the cursor shows: the mode the next key press is in.
@@ -54,6 +54,8 @@ pub enum ScreenKind {
     Graph,
     /// A numbered menu (`menu` is set).
     Menu,
+    /// The program editor (`program` is set).
+    Program,
 }
 
 /// An evaluated entry on the home screen.
@@ -82,6 +84,25 @@ pub struct HomeScreen {
     pub entry: Vec<String>,
     /// The index of the token under the cursor; `entry.length` after the last one.
     pub cursor: u32,
+    /// While a running program waits for input, the prompt before the entry (`A=?`).
+    pub prompt: Option<String>,
+}
+
+/// A line of a program: its tokens, and where the cursor is on the line being edited.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct ProgramLine {
+    /// Unique among the program's lines: its key in lists.
+    pub id: u32,
+    pub entry: Vec<String>,
+    pub cursor: Option<u32>,
+}
+
+/// The program editor.
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct ProgramScreen {
+    /// `PROGRAM:NAME`.
+    pub title: String,
+    pub lines: Vec<ProgramLine>,
 }
 
 /// A MODE row: its options, the chosen one and, on the cursor's row, the highlighted one.
@@ -122,6 +143,10 @@ pub struct Screen {
     pub status: Vec<String>,
     /// What the cursor shows.
     pub cursor_style: CursorStyle,
+    /// Whether a program is running, busy or waiting for a key; ON breaks it.
+    pub running: bool,
+    /// Whether a running program is busy, not waiting for a key: call `resume` to carry it on.
+    pub busy: bool,
     pub home: Option<HomeScreen>,
     pub mode: Option<ModeScreen>,
     pub error: Option<ErrorScreen>,
@@ -130,6 +155,7 @@ pub struct Screen {
     pub table: Option<TableScreen>,
     pub graph: Option<GraphScreen>,
     pub menu: Option<MenuScreen>,
+    pub program: Option<ProgramScreen>,
 }
 
 fn index(value: usize) -> u32 {
@@ -138,11 +164,12 @@ fn index(value: usize) -> u32 {
 
 impl From<calc_core::Screen<'_>> for Screen {
     fn from(screen: calc_core::Screen<'_>) -> Self {
-        use calc_core::ScreenView;
         let base = Screen {
             kind: ScreenKind::Home,
             status: screen.status.to_vec(),
             cursor_style: screen.cursor_style.into(),
+            running: screen.running,
+            busy: screen.busy,
             home: None,
             mode: None,
             error: None,
@@ -151,48 +178,76 @@ impl From<calc_core::Screen<'_>> for Screen {
             table: None,
             graph: None,
             menu: None,
+            program: None,
         };
-        match screen.view {
-            ScreenView::Home(home) => Screen {
-                home: Some(home_screen(home)),
-                ..base
-            },
-            ScreenView::Mode(mode) => Screen {
-                kind: ScreenKind::Mode,
-                mode: Some(mode_screen(&mode)),
-                ..base
-            },
-            ScreenView::Error(error) => Screen {
-                kind: ScreenKind::Error,
-                error: Some(error_screen(&error)),
-                ..base
-            },
-            ScreenView::Functions(functions) => Screen {
-                kind: ScreenKind::Functions,
-                functions: Some(functions_screen(&functions)),
-                ..base
-            },
-            ScreenView::Fields(fields) => Screen {
-                kind: ScreenKind::Fields,
-                fields: Some(fields_screen(&fields)),
-                ..base
-            },
-            ScreenView::Table(table) => Screen {
-                kind: ScreenKind::Table,
-                table: Some(table_screen(&table)),
-                ..base
-            },
-            ScreenView::Graph(graph) => Screen {
-                kind: ScreenKind::Graph,
-                graph: Some(graph_screen(&graph)),
-                ..base
-            },
-            ScreenView::Menu(menu) => Screen {
-                kind: ScreenKind::Menu,
-                menu: Some(menu_screen(&menu)),
-                ..base
-            },
-        }
+        with_view(base, screen.view)
+    }
+}
+
+/// `base` showing `view`: its kind and part set.
+fn with_view(base: Screen, view: calc_core::ScreenView<'_>) -> Screen {
+    use calc_core::ScreenView;
+    match view {
+        ScreenView::Home(home) => Screen {
+            home: Some(home_screen(home)),
+            ..base
+        },
+        ScreenView::Mode(mode) => Screen {
+            kind: ScreenKind::Mode,
+            mode: Some(mode_screen(&mode)),
+            ..base
+        },
+        ScreenView::Error(error) => Screen {
+            kind: ScreenKind::Error,
+            error: Some(error_screen(&error)),
+            ..base
+        },
+        ScreenView::Functions(functions) => Screen {
+            kind: ScreenKind::Functions,
+            functions: Some(functions_screen(&functions)),
+            ..base
+        },
+        ScreenView::Fields(fields) => Screen {
+            kind: ScreenKind::Fields,
+            fields: Some(fields_screen(&fields)),
+            ..base
+        },
+        ScreenView::Table(table) => Screen {
+            kind: ScreenKind::Table,
+            table: Some(table_screen(&table)),
+            ..base
+        },
+        ScreenView::Graph(graph) => Screen {
+            kind: ScreenKind::Graph,
+            graph: Some(graph_screen(&graph)),
+            ..base
+        },
+        ScreenView::Menu(menu) => Screen {
+            kind: ScreenKind::Menu,
+            menu: Some(menu_screen(&menu)),
+            ..base
+        },
+        ScreenView::Program(program) => Screen {
+            kind: ScreenKind::Program,
+            program: Some(program_screen(&program)),
+            ..base
+        },
+    }
+}
+
+fn program_screen(program: &calc_core::screen::ProgramView<'_>) -> ProgramScreen {
+    let lines = program
+        .lines
+        .iter()
+        .enumerate()
+        .map(|(id, line)| ProgramLine {
+            id: index(id),
+            entry: texts(line.entry),
+            cursor: line.cursor.map(index),
+        });
+    ProgramScreen {
+        title: program.title.clone(),
+        lines: lines.collect(),
     }
 }
 
@@ -213,8 +268,9 @@ fn home_screen(home: calc_core::HomeView<'_>) -> HomeScreen {
         });
     HomeScreen {
         history: history.collect(),
-        entry: home.entry.iter().map(|t| t.text().to_owned()).collect(),
+        entry: texts(home.entry),
         cursor: index(home.cursor),
+        prompt: home.prompt.map(str::to_owned),
     }
 }
 

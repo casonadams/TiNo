@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use super::{Calculator, View, calc::calc_menu};
 use crate::{
     choice_screen::{ChoiceCursor, ChoiceRow},
@@ -5,6 +7,7 @@ use crate::{
     field_editor::{Field, FieldCursor},
     format::format_real,
     functions::{FUNCTION_COUNT, Functions},
+    home::HistorySelection,
     keymap::Layer,
     list_menu::ListMenu,
     menus::MenuCursor,
@@ -25,39 +28,56 @@ impl Calculator {
         Screen {
             status: self.settings.labels(),
             cursor_style: self.cursor_style(),
-            view: match &self.view {
-                View::Home(state) => ScreenView::Home(HomeView {
-                    history: self.history.lines(),
-                    entry: self.editor.tokens(),
-                    cursor: self.editor.cursor(),
-                    selected: state.selected,
-                }),
-                View::Mode(cursor) => ScreenView::Mode(choice_view(*cursor, &self.settings)),
-                View::Format(cursor) => ScreenView::Mode(choice_view(*cursor, &self.format)),
-                View::Error(menu) => ScreenView::Error(error_view(menu)),
-                View::Functions(cursor) => ScreenView::Functions(self.functions_view(*cursor)),
-                View::Window(cursor) => {
-                    ScreenView::Fields(self.fields_view(cursor, |field| field.get(&self.window)))
-                }
-                View::TableSetup(cursor) => {
-                    ScreenView::Fields(self.fields_view(cursor, |field| field.get(&self.table)))
-                }
-                View::Table(cursor) => ScreenView::Table(self.table_view(*cursor)),
-                View::Grid(grid, editor) => ScreenView::Table(self.grid_view(*grid, editor)),
-                View::Graph(trace) => ScreenView::Graph(Box::new(self.graph_view(*trace))),
-                View::FreeGraph(cursor) => {
-                    ScreenView::Graph(Box::new(self.free_graph_view(*cursor, None)))
-                }
-                View::ZBox(marking) => ScreenView::Graph(Box::new(
-                    self.free_graph_view(marking.cursor, marking.corner),
-                )),
-                View::Zoom(menu) => ScreenView::Menu(zoom_menu(*menu)),
-                View::CalcMenu(menu) => ScreenView::Menu(calc_menu(*menu)),
-                View::GraphCalc(session) => {
-                    ScreenView::Graph(Box::new(self.graph_calc_view(session)))
-                }
-                View::Menu(menu) => ScreenView::Menu(typing_menu(menu.cursor)),
-            },
+            running: matches!(&self.view, View::Running(_)),
+            busy: matches!(&self.view, View::Running(run) if run.waiting.is_none()),
+            view: self.view(),
+        }
+    }
+
+    fn view(&self) -> ScreenView<'_> {
+        match &self.view {
+            View::Home(state) => ScreenView::Home(self.home_view(state.selected, None)),
+            View::Running(run) => ScreenView::Home(self.home_view(None, Self::input_prompt(run))),
+            View::Mode(cursor) => ScreenView::Mode(choice_view(*cursor, &self.settings)),
+            View::Format(cursor) => ScreenView::Mode(choice_view(*cursor, &self.format)),
+            View::Error(menu) => ScreenView::Error(error_view(menu)),
+            View::Functions(cursor) => ScreenView::Functions(self.functions_view(*cursor)),
+            View::Window(cursor) => {
+                ScreenView::Fields(self.fields_view(cursor, |field| field.get(&self.window)))
+            }
+            View::TableSetup(cursor) => {
+                ScreenView::Fields(self.fields_view(cursor, |field| field.get(&self.table)))
+            }
+            View::Table(cursor) => ScreenView::Table(self.table_view(*cursor)),
+            View::Grid(grid, editor) => ScreenView::Table(self.grid_view(*grid, editor)),
+            View::Graph(trace) => ScreenView::Graph(Box::new(self.graph_view(*trace))),
+            View::FreeGraph(cursor) => {
+                ScreenView::Graph(Box::new(self.free_graph_view(*cursor, None)))
+            }
+            View::ZBox(marking) => ScreenView::Graph(Box::new(
+                self.free_graph_view(marking.cursor, marking.corner),
+            )),
+            View::Zoom(menu) => ScreenView::Menu(zoom_menu(*menu)),
+            View::CalcMenu(menu) => ScreenView::Menu(calc_menu(*menu)),
+            View::GraphCalc(session) => ScreenView::Graph(Box::new(self.graph_calc_view(session))),
+            View::Menu(menu) => ScreenView::Menu(typing_menu(menu.cursor)),
+            View::Programs(menu) => ScreenView::Menu(self.program_menu_view(*menu)),
+            View::ProgramName(editor) => ScreenView::Fields(Self::program_name_view(editor)),
+            View::ProgramEditor(cursor) => ScreenView::Program(self.program_view(cursor)),
+        }
+    }
+
+    fn home_view<'a>(
+        &'a self,
+        selected: Option<HistorySelection>,
+        prompt: Option<&'a str>,
+    ) -> HomeView<'a> {
+        HomeView {
+            history: self.history.lines(),
+            entry: self.editor.tokens(),
+            cursor: self.editor.cursor(),
+            selected,
+            prompt,
         }
     }
 
@@ -166,7 +186,7 @@ fn error_view(menu: &ErrorMenu) -> ErrorView {
 fn zoom_menu(menu: ListMenu) -> MenuView {
     let items = ZoomItem::ALL.iter().map(|item| MenuItemView {
         key: char::from(b'0' + item.digit()),
-        label: item.label(),
+        label: Cow::Borrowed(item.label()),
     });
     MenuView {
         tabs: vec!["ZOOM"],
@@ -180,7 +200,7 @@ fn typing_menu(cursor: MenuCursor) -> MenuView {
     let entries = cursor.current_tab().entries.iter();
     let items = entries.map(|entry| MenuItemView {
         key: entry.key,
-        label: entry.label,
+        label: Cow::Borrowed(entry.label),
     });
     MenuView {
         tabs: cursor.kind.tabs().iter().map(|tab| tab.title).collect(),

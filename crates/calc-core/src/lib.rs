@@ -29,6 +29,7 @@ pub mod modifiers;
 pub mod numeric;
 pub mod parse;
 pub mod plot;
+pub mod program;
 pub mod screen;
 pub mod settings;
 pub mod stats;

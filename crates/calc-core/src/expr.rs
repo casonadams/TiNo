@@ -20,6 +20,8 @@ pub enum Expr {
     Table(TableField),
     /// A Y= function by slot: at the current `X`, or at its argument (`Y₁(3)`).
     YVar(usize, Option<Box<Expr>>),
+    /// Text between quotes (`"HELLO"`), which programs display.
+    Text(String),
     /// A list written out: `{1,2,3}`.
     List(Vec<Expr>),
     /// A stored list by name, or its element at the index (`L₁(2)`).

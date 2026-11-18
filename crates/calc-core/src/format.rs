@@ -11,18 +11,6 @@ const DIGITS: i32 = 10;
 /// The tokens that type a formatted result (`⁻1.5ᴇ3`, `⁻3/4`, `{1 2}`,
 /// a matrix's rows); the padding that aligns a matrix's columns types nothing.
 pub fn result_tokens(text: &str) -> Vec<Token> {
-    const DIGITS: [Digit; 10] = [
-        Digit::Zero,
-        Digit::One,
-        Digit::Two,
-        Digit::Three,
-        Digit::Four,
-        Digit::Five,
-        Digit::Six,
-        Digit::Seven,
-        Digit::Eight,
-        Digit::Nine,
-    ];
     text.chars()
         .filter_map(|c| match c {
             '.' => Some(Token::DecimalPoint),
@@ -41,7 +29,7 @@ pub fn result_tokens(text: &str) -> Vec<Token> {
             '[' => Some(Token::LeftBracket),
             ']' => Some(Token::RightBracket),
             ' ' => Some(Token::Comma),
-            c => c.to_digit(10).map(|d| Token::Digit(DIGITS[d as usize])),
+            c => c.to_digit(10).map(|d| Token::Digit(Digit::ALL[d as usize])),
         })
         .collect()
 }

@@ -36,6 +36,7 @@ fn latex(expr: &Expr) -> String {
         Expr::Rand => "\\mathrm{rand}".to_owned(),
         Expr::Window(field) => name_tex(field.label()),
         Expr::Table(field) => name_tex(field.label()),
+        Expr::Text(text) => format!("\\text{{\"{text}\"}}"),
         Expr::List(elements) => {
             let shown: Vec<String> = elements.iter().map(latex).collect();
             format!("\\left\\{{{}\\right\\}}", shown.join(", "))

@@ -243,7 +243,7 @@ impl Calculator {
 pub(super) fn calc_menu(menu: ListMenu) -> MenuView {
     let items = CalcItem::ALL.iter().map(|item| MenuItemView {
         key: char::from(b'0' + item.digit()),
-        label: item.label(),
+        label: std::borrow::Cow::Borrowed(item.label()),
     });
     MenuView {
         tabs: vec!["CALCULATE"],

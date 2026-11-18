@@ -259,3 +259,41 @@ impl DisplayAs {
         }
     }
 }
+
+/// A program command, the first token of a program instruction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Keyword {
+    If,
+    Then,
+    Else,
+    For,
+    While,
+    Repeat,
+    End,
+    Pause,
+    Stop,
+    Input,
+    Prompt,
+    Disp,
+    ClrHome,
+}
+
+impl Keyword {
+    pub const fn text(self) -> &'static str {
+        match self {
+            Keyword::If => "If ",
+            Keyword::Then => "Then",
+            Keyword::Else => "Else",
+            Keyword::For => "For(",
+            Keyword::While => "While ",
+            Keyword::Repeat => "Repeat ",
+            Keyword::End => "End",
+            Keyword::Pause => "Pause",
+            Keyword::Stop => "Stop",
+            Keyword::Input => "Input ",
+            Keyword::Prompt => "Prompt ",
+            Keyword::Disp => "Disp ",
+            Keyword::ClrHome => "ClrHome",
+        }
+    }
+}

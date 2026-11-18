@@ -32,6 +32,8 @@ pub enum ErrorKind {
     WindowRange,
     /// Valid calculator syntax that this calculator does not evaluate yet.
     Unsupported,
+    /// ON pressed while a program runs.
+    Break,
 }
 
 /// An evaluation error, with the token it was found at when known.
@@ -82,6 +84,7 @@ impl CalcError {
             ErrorKind::SingularMatrix => "ERR:SINGULAR MAT",
             ErrorKind::WindowRange => "ERR:WINDOW RANGE",
             ErrorKind::Unsupported => "ERR:UNSUPPORTED",
+            ErrorKind::Break => "ERR:BREAK",
         }
     }
 }

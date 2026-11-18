@@ -19,57 +19,67 @@ function typesetSize(points: number): string {
   return sizes.reduce((best, size) => (Math.abs(size[0] - points) < Math.abs(best[0] - points) ? size : best))[1];
 }
 
-/** An evaluated entry: typeset on the left, its result on the right on the next line; the half ▲ ▼ highlight is filled. */
+/** A line of text, left aligned: a report line or a program's Disp text. */
+function TextLine(props: { text: () => string }) {
+  return (
+    <View class="justify-center" style={{ height: px(GRID.line) }}>
+      <Text class="font-mono text-lcd-foreground" style={{ fontSize: px(GRID.text) }}>
+        {props.text()}
+      </Text>
+    </View>
+  );
+}
+
+/** A history line: the entry typeset on the left, report lines, and the result on the right, each part shown when it has any; the half ▲ ▼ highlight is filled. */
 function HistoryRow(props: { line: () => HistoryLine }) {
   return (
     <View>
-      <TextView
-        markdown={`$${props.line().latex}$`}
-        class={`${typesetSize(px(GRID.text))} ${highlight(props.line().entrySelected)} ${
-          props.line().entrySelected ? "text-lcd" : "text-lcd-foreground"
-        }`}
-      />
-      <If
-        when={props.line().lines.length > 0}
-        else={
-          <View class={`self-end ${highlight(props.line().resultSelected)}`}>
-            <Each of={props.line().result.split("\n")} key="index">
-              {(row) => (
-                <View class="justify-center" style={{ height: px(GRID.line) }}>
-                  <Text
-                    class={`font-mono ${props.line().resultSelected ? "text-lcd" : "text-lcd-foreground"}`}
-                    style={{ fontSize: px(GRID.text) }}
-                  >
-                    {row()}
-                  </Text>
-                </View>
-              )}
-            </Each>
-          </View>
-        }
-      >
-        <Each of={props.line().lines} key="index">
-          {(line) => (
-            <View class="justify-center" style={{ height: px(GRID.line) }}>
-              <Text class="font-mono text-lcd-foreground" style={{ fontSize: px(GRID.text) }}>
-                {line()}
-              </Text>
-            </View>
-          )}
-        </Each>
+      <If when={props.line().latex !== ""}>
+        <TextView
+          markdown={`$${props.line().latex}$`}
+          class={`${typesetSize(px(GRID.text))} ${highlight(props.line().entrySelected)} ${
+            props.line().entrySelected ? "text-lcd" : "text-lcd-foreground"
+          }`}
+        />
+      </If>
+      <Each of={props.line().lines} key="index">
+        {(line) => <TextLine text={line} />}
+      </Each>
+      <If when={props.line().result !== ""}>
+        <View class={`self-end ${highlight(props.line().resultSelected)}`}>
+          <Each of={props.line().result.split("\n")} key="index">
+            {(row) => (
+              <View class="justify-center" style={{ height: px(GRID.line) }}>
+                <Text
+                  class={`font-mono ${props.line().resultSelected ? "text-lcd" : "text-lcd-foreground"}`}
+                  style={{ fontSize: px(GRID.text) }}
+                >
+                  {row()}
+                </Text>
+              </View>
+            )}
+          </Each>
+        </View>
       </If>
     </View>
   );
 }
 
-/** The home screen: the newest history at the bottom, then the entry line. */
+/** The home screen: the newest history at the bottom, then the entry line, after a running program's prompt while it waits for input. */
 export function HomeView(props: { home: () => HomeScreen; cursorStyle: () => CursorStyle }) {
   return (
     <View class="flex-1 justify-end" style={{ overflow: "hidden" }}>
       <Each of={props.home().history} key={(line: HistoryLine) => line.id}>
         {(line) => <HistoryRow line={line} />}
       </Each>
-      <View class="flex-row">
+      <View class="flex-row items-center">
+        <If when={props.home().prompt}>
+          {(prompt) => (
+            <Text class="font-mono text-lcd-foreground" style={{ fontSize: px(GRID.text) }}>
+              {prompt()}
+            </Text>
+          )}
+        </If>
         <EntryLine
           entry={() => props.home().entry}
           cursor={() => props.home().cursor}

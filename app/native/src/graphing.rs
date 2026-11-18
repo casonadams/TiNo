@@ -169,7 +169,7 @@ fn index(value: usize) -> u32 {
     u32::try_from(value).unwrap_or(u32::MAX)
 }
 
-fn texts(tokens: &[calc_core::Token]) -> Vec<String> {
+pub(crate) fn texts(tokens: &[calc_core::Token]) -> Vec<String> {
     tokens.iter().map(|t| t.text().to_owned()).collect()
 }
 
@@ -279,7 +279,7 @@ fn calc_panel(calc: &calc_core::screen::CalcView) -> CalcPanel {
 pub fn menu_screen(view: &calc_core::MenuView) -> MenuScreen {
     let items = view.items.iter().map(|item| MenuItem {
         key: item.key.to_string(),
-        label: item.label.to_owned(),
+        label: item.label.to_string(),
     });
     MenuScreen {
         tabs: view.tabs.iter().map(|&tab| tab.to_owned()).collect(),

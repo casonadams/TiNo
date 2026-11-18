@@ -24,6 +24,21 @@ pub fn parse(tokens: &[Token]) -> Result<Statement, CalcError> {
     }
 }
 
+/// Comma-separated expressions filling `tokens`, as a program command's
+/// arguments take them (`For(`, `Disp `); a `)` may close them.
+pub fn expressions(tokens: &[Token]) -> Result<Vec<Expr>, CalcError> {
+    let mut parser = Parser { tokens, pos: 0 };
+    let mut list = vec![parser.expression()?];
+    while parser.eat(Token::Comma) {
+        list.push(parser.expression()?);
+    }
+    parser.eat(Token::RightParen);
+    match parser.peek() {
+        None => Ok(list),
+        Some(_) => Err(parser.error(ErrorKind::Syntax)),
+    }
+}
+
 struct Parser<'a> {
     tokens: &'a [Token],
     pos: usize,
@@ -168,8 +183,21 @@ impl Parser<'_> {
             Token::LeftBracket => self.matrix(),
             Token::LeftBrace => self.list(),
             Token::LeftParen => self.group(),
+            Token::Quote => Ok(self.text()),
             _ => atom(token).ok_or_else(|| CalcError::at(unexpected(token), at)),
         }
+    }
+
+    /// Text after a `"`, through the closing `"` or the end of the entry.
+    fn text(&mut self) -> Expr {
+        let rest = &self.tokens[self.pos..];
+        let length = rest.iter().position(|&token| token == Token::Quote);
+        let text = rest[..length.unwrap_or(rest.len())]
+            .iter()
+            .map(|t| t.text())
+            .collect();
+        self.pos += length.map_or(rest.len(), |length| length + 1);
+        Expr::Text(text)
     }
 
     /// A Y= function, its token consumed: `Y₁(3)` at 3 when a `(` follows.
@@ -382,7 +410,6 @@ fn unexpected(token: Token) -> ErrorKind {
         Token::SequenceU
         | Token::SequenceV
         | Token::SequenceW
-        | Token::Quote
         | Token::Colon
         | Token::Space
         | Token::Question => ErrorKind::Unsupported,

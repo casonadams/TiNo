@@ -43,6 +43,12 @@ impl Modifiers {
         self.second = false;
     }
 
+    /// Locks ALPHA, as screens that take a name do on opening.
+    pub fn lock_alpha(&mut self) {
+        self.second = false;
+        self.alpha = AlphaState::Locked;
+    }
+
     /// After any other key: 2nd and a single ALPHA are used up, a lock stays.
     pub fn release(&mut self) {
         self.second = false;

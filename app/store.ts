@@ -10,10 +10,24 @@ const screen = signal<Screen>(calculator.screen);
 /** What the calculator's screen shows (tracked where it is read). */
 export const currentScreen = (): Screen => screen();
 
-/** Shows `next` and keeps the calculator for the next session. */
+/** Whether a program's next slice is already scheduled. */
+let resuming = false;
+
+/** Runs the busy program's next slice. */
+function resume(): void {
+  resuming = false;
+  show(calculator.resume());
+}
+
+/** Shows `next` and keeps the calculator for the next session; while a program is busy, carries it on after this update instead. */
 function show(next: Screen): void {
   screen.set(next);
-  void Storage.setItem(CALCULATOR_KEY, calculator.save());
+  if (!next.busy) {
+    void Storage.setItem(CALCULATOR_KEY, calculator.save());
+  } else if (!resuming) {
+    resuming = true;
+    setTimeout(resume, 0);
+  }
 }
 
 /** Brings back the calculator the last session kept; a kept one this version cannot read is replaced. */

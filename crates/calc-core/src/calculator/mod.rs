@@ -1,7 +1,7 @@
 //! The calculator: key presses in, a screen out. Each screen's keys are
 //! handled in its own module; the screen keys (Y=, WINDOW, ZOOM, FORMAT,
 //! TRACE, GRAPH, TBLSET, TABLE, MODE, 2nd QUIT) switch screens from anywhere
-//! but the error screen.
+//! but the error screen and a running program.
 
 mod calc;
 mod free;
@@ -9,7 +9,9 @@ mod graph;
 mod grids;
 mod home;
 mod persist;
+mod programs;
 mod render;
+mod run;
 mod screens;
 mod table;
 
@@ -34,6 +36,7 @@ use crate::{
     menus::{MenuCursor, MenuKind},
     mode_screen::ModeCursor,
     modifiers::Modifiers,
+    program::Program,
     settings::{NumberMode, Settings},
     table::{TableCursor, TableField, TableSettings},
     trace::TraceCursor,
@@ -70,6 +73,13 @@ enum View {
     Grid(Grid, GridEditor),
     /// A menu that types into the screen under it.
     Menu(OpenMenu),
+    /// PRGM on the home screen: EXEC, EDIT and NEW.
+    Programs(programs::ProgramMenu),
+    /// PRGM NEW's prompt for the new program's name.
+    ProgramName(Editor),
+    ProgramEditor(programs::ProgramCursor),
+    /// A program running, or waiting for input or ENTER.
+    Running(run::Run),
 }
 
 /// An open typing menu and the screen it types into.
@@ -148,6 +158,8 @@ pub struct Calculator {
     window: Window,
     table: TableSettings,
     format: GraphFormat,
+    /// The programs, by name.
+    programs: Vec<Program>,
 }
 
 impl Calculator {
@@ -169,6 +181,7 @@ impl Calculator {
         let view = std::mem::take(&mut self.view);
         let (destination, menu) = match (&view, action) {
             (View::Error(_), _) => (None, None),
+            (View::Running(_), Action::Command(command)) => (None, menu_of(command)),
             (_, Action::Command(command)) => (Destination::of(command), menu_of(command)),
             _ => (None, None),
         };
@@ -204,6 +217,10 @@ impl Calculator {
             View::CalcMenu(menu) => self.perform_calc_menu(menu, action),
             View::GraphCalc(session) => self.perform_graph_calc(session, action),
             View::Menu(menu) => self.perform_menu(menu, action),
+            View::Programs(menu) => self.perform_program_menu(menu, action),
+            View::ProgramName(editor) => self.perform_program_name(editor, action),
+            View::ProgramEditor(cursor) => self.perform_program_editor(cursor, action),
+            View::Running(run) => self.perform_running(run, action),
         }
     }
 
@@ -271,6 +288,7 @@ fn menu_of(command: Command) -> Option<MenuKind> {
 fn menu_base(view: View) -> View {
     match view {
         View::Home(_) | View::Window(_) | View::TableSetup(_) | View::Grid(..) => view,
+        View::ProgramEditor(_) | View::Running(_) => view,
         View::Functions(cursor) if !cursor.on_selector => view,
         View::Menu(menu) => *menu.under,
         _ => HOME,

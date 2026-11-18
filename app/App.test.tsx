@@ -150,6 +150,23 @@ test("key haptics can be turned off on the settings screen and stay off", async 
   expect(second.spanStyle("text:On")?.color).not.toBe(chosen);
 });
 
+test("a long program runs on between screen updates, and ON breaks one that never ends", async () => {
+  const app = await open("./App.tsx");
+  const keys = async (...ids: string[]) => {
+    for (const id of ids) await app.press(`id:key-${id}`);
+  };
+  await keys("prgm", "left", "enter", "math", "enter");
+  await keys("prgm", "4", "xt-theta-n", "comma", "1", "comma", "3", "0", "0", "0", "enter");
+  await keys("prgm", "7", "enter", "prgm", "right", "3", "xt-theta-n", "second", "mode");
+  await keys("prgm", "1", "enter");
+  await app.waitUntil(() => app.texts().includes("Done"));
+  expect(app.texts()).toContain("3001");
+  await keys("prgm", "left", "enter", "apps", "enter", "prgm", "5", "1", "enter", "prgm", "7", "second", "mode");
+  await keys("prgm", "2", "enter", "on");
+  expect(app.texts()).toContain("ERR:BREAK");
+  expect(app.shows("id:settings")).toBe(false);
+});
+
 test("every key of every skin but ON, which opens settings, is a key the calculator knows", async () => {
   for (const skin of SKINS) {
     const app = await open("./App.tsx");

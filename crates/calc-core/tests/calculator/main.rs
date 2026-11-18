@@ -9,6 +9,7 @@ mod matrices;
 mod menus;
 mod mode_screen;
 mod persistence;
+mod programs;
 mod stats;
 mod support;
 mod table;

@@ -1,8 +1,9 @@
-use super::{Calculator, HOME, HomeState, View, error_view};
+use super::{Calculator, HOME, HomeState, View, error_view, programs::ProgramMenu};
 use crate::{
     error::CalcError,
     error_screen::ErrorOrigin,
-    expr::{Expr, StoreTarget},
+    eval::Value,
+    expr::{Expr, Statement, StoreTarget},
     format::{format_real, format_value},
     home::{HistorySelection, Output},
     keymap::{Action, Command, Edit},
@@ -33,6 +34,7 @@ impl Calculator {
             Action::Command(Command::Up) => {
                 return selecting(HistorySelection::newest(self.history.lines().len()));
             }
+            Action::Command(Command::Prgm) => return View::Programs(ProgramMenu::default()),
             Action::Command(_) => {}
         }
         HOME
@@ -74,6 +76,9 @@ impl Calculator {
         };
         self.entries.push(entry.clone());
         self.editor.apply(Edit::Clear);
+        if let [Token::Prgm, name @ ..] = &entry[..] {
+            return self.start_program(&entry, name);
+        }
         match self.run(&entry) {
             Ok(output) => {
                 self.history.push(output);
@@ -95,6 +100,18 @@ impl Calculator {
                 lines: self.report(*function, arguments)?,
             });
         }
+        let value = self.evaluate_statement(&statement)?;
+        let result = format_value(&value, self.settings, statement.display);
+        Ok(Output {
+            entry: entry.to_vec(),
+            latex: latex::statement(&statement),
+            result,
+            lines: Vec::new(),
+        })
+    }
+
+    /// `statement` evaluated, stored where it says, and kept as `Ans`.
+    pub(super) fn evaluate_statement(&mut self, statement: &Statement) -> Result<Value, CalcError> {
         let value = self.context().evaluate(&statement.expr)?;
         match statement.store {
             Some(StoreTarget::Variable(letter)) => self.memory.set(letter, value.clone().real()?),
@@ -104,14 +121,8 @@ impl Calculator {
             }
             None => {}
         }
-        let result = format_value(&value, self.settings, statement.display);
-        self.memory.set_ans(value);
-        Ok(Output {
-            entry: entry.to_vec(),
-            latex: latex::statement(&statement),
-            result,
-            lines: Vec::new(),
-        })
+        self.memory.set_ans(value.clone());
+        Ok(value)
     }
 
     /// A STAT CALC command's report, one `name=value` line per statistic;

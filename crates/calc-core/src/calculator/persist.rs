@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::Calculator;
 use crate::{
     eval::Memory, functions::FUNCTION_COUNT, graph_format::GraphFormat, home::Output,
-    settings::Settings, table::TableSettings, token::Token, window::Window,
+    program::Program, settings::Settings, table::TableSettings, token::Token, window::Window,
 };
 
 /// The snapshot format written by this version; a snapshot of another
@@ -26,6 +26,8 @@ struct Snapshot {
     format: GraphFormat,
     history: Vec<Output>,
     entries: Vec<Vec<Token>>,
+    #[serde(default)]
+    programs: Vec<Program>,
 }
 
 /// A Y= function as kept: its entry and whether it is graphed.
@@ -65,7 +67,8 @@ impl std::error::Error for LoadError {}
 
 impl Calculator {
     /// The calculator's memory, settings, functions, window, table and graph
-    /// format settings, home screen and entries, as text `load` reads back.
+    /// format settings, home screen, entries and programs, as text `load`
+    /// reads back.
     pub fn save(&self) -> String {
         let functions = self.functions.slots().iter().map(|slot| FunctionState {
             entry: slot.editor.tokens().to_vec(),
@@ -86,6 +89,7 @@ impl Calculator {
                 .map(|line| line.output.clone())
                 .collect(),
             entries: self.entries.entries().iter().cloned().collect(),
+            programs: self.programs.clone(),
         };
         serde_json::to_string(&snapshot).expect("a snapshot holds only strings, numbers and lists")
     }
@@ -105,6 +109,7 @@ impl Calculator {
             window: snapshot.window,
             table: snapshot.table,
             format: snapshot.format,
+            programs: snapshot.programs,
             ..Calculator::default()
         };
         for (index, function) in snapshot.functions.into_iter().enumerate() {

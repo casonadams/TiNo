@@ -4,7 +4,7 @@
 use crate::{
     grid_editor::Grid,
     table::TableField,
-    token::{ListName, MatrixName, Token},
+    token::{Keyword, ListName, MatrixName, Token},
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
     window_editor::WindowField,
 };
@@ -24,6 +24,8 @@ pub enum MenuKind {
     Stat,
     /// 2nd MATRIX: the matrix names, MATH, and EDIT, which opens a matrix's editor.
     Matrix,
+    /// PRGM in the program editor: CTL and I/O, the program commands.
+    Program,
 }
 
 /// What picking an item does: type a token, or open a grid editor.
@@ -280,6 +282,37 @@ const MATRIX: [MenuTab; 3] = [
     },
 ];
 
+const fn keyword(key: char, keyword: Keyword) -> MenuEntry {
+    entry(key, keyword.text(), Token::Keyword(keyword))
+}
+
+const PROGRAM: [MenuTab; 2] = [
+    MenuTab {
+        title: "CTL",
+        entries: &[
+            keyword('1', Keyword::If),
+            keyword('2', Keyword::Then),
+            keyword('3', Keyword::Else),
+            keyword('4', Keyword::For),
+            keyword('5', Keyword::While),
+            keyword('6', Keyword::Repeat),
+            keyword('7', Keyword::End),
+            keyword('8', Keyword::Pause),
+            entry('D', "prgm", Token::Prgm),
+            keyword('F', Keyword::Stop),
+        ],
+    },
+    MenuTab {
+        title: "I/O",
+        entries: &[
+            keyword('1', Keyword::Input),
+            keyword('2', Keyword::Prompt),
+            keyword('3', Keyword::Disp),
+            keyword('8', Keyword::ClrHome),
+        ],
+    },
+];
+
 impl MenuKind {
     pub fn tabs(self) -> &'static [MenuTab] {
         match self {
@@ -289,6 +322,7 @@ impl MenuKind {
             MenuKind::List => &LIST,
             MenuKind::Stat => &STAT,
             MenuKind::Matrix => &MATRIX,
+            MenuKind::Program => &PROGRAM,
         }
     }
 }

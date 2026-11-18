@@ -186,6 +186,7 @@ impl<'a> Evaluator<'a> {
             Expr::Rand => real(memory.random()),
             Expr::Window(field) => real(field.get(self.context.window)),
             Expr::Table(field) => real(field.get(self.context.table)),
+            Expr::Text(_) => fail(ErrorKind::DataType),
             Expr::List(elements) => elements
                 .iter()
                 .map(|element| self.real(element))

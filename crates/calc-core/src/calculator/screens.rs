@@ -56,6 +56,7 @@ impl Calculator {
                 View::TableSetup(cursor)
             }
             ErrorOrigin::Grid(grid, editor) => View::Grid(grid, editor),
+            ErrorOrigin::Program(name, line) => self.program_editor(name, line),
         }
     }
 

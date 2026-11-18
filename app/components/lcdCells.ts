@@ -18,12 +18,15 @@ const END_GLYPHS: Record<CursorStyle, string> = {
   alphaLock: "A",
 };
 
+/** A no-break space: a token's own space (`Disp `) would collapse at the end of a text. */
+const NO_BREAK_SPACE = "\u00a0";
+
 /** An entry line's cells; with a cursor, the cursor on the cell it is at. */
 export function lcdCells(entry: string[], cursor: number | null | undefined, style: CursorStyle): LcdCell[] {
   const shown: CellCursor = style === "insert" ? "bar" : "block";
   const cells = entry.map((text, index): LcdCell => ({
     index,
-    text,
+    text: text.replaceAll(" ", NO_BREAK_SPACE),
     cursor: index === cursor ? shown : "none",
   }));
   if (cursor === entry.length) {

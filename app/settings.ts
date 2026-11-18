@@ -2,7 +2,7 @@ import { signal } from "nsh";
 import { setHaptics } from "./haptics";
 import { SKINS } from "./skins";
 import { chooseSkin, currentSkin } from "./skinStore";
-import { press } from "./store";
+import { currentScreen, press } from "./store";
 
 /** Keys that close the settings screen. */
 const CLOSING_KEYS = ["on", "clear", "enter"];
@@ -30,10 +30,10 @@ function stepLine(by: number): void {
   chooseSkin(SKINS[(index + by + SKINS.length) % SKINS.length].id);
 }
 
-/** Presses the key with id `key`: ON opens the settings screen, where ▲ ▼ pick a line, ◀ ▶ change it, and ON, CLEAR or ENTER close it; every other key goes to the calculator. */
+/** Presses the key with id `key`: ON opens the settings screen (or breaks a running program), where ▲ ▼ pick a line, ◀ ▶ change it, and ON, CLEAR or ENTER close it; every other key goes to the calculator. */
 export function pressKey(key: string): void {
   if (!open()) {
-    if (key === "on") {
+    if (key === "on" && !currentScreen().running) {
       line.set("skin");
       open.set(true);
     } else press(key);

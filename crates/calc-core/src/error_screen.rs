@@ -42,6 +42,9 @@ pub enum ErrorOrigin {
     TableField(TableField, Vec<Token>),
     /// A cell of STAT EDIT or MATRIX EDIT, with what was typed into it.
     Grid(Grid, GridEditor),
+    /// A line of the program of this name, which it was running or could
+    /// not compile.
+    Program(String, usize),
 }
 
 /// The error screen: the error, where it was raised, and the highlighted
