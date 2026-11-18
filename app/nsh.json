@@ -6,5 +6,10 @@
   "rust": "native",
   "theme": "skins/color/theme.json",
   "appearance": "dark",
-  "icon": "icon.png"
+  "icon": "icon.png",
+  "capabilities": {
+    "host": ["haptic.*"],
+    "statusBar": true
+  },
+  "web": { "host": "./host.js" }
 }

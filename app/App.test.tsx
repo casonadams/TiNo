@@ -132,12 +132,22 @@ test("ON opens settings, where a skin restyles the calculator and is kept betwee
   await second.waitUntil(() => second.spanStyle("text:NORMAL FLOAT RADIAN")?.color === classicStatus);
 });
 
-test("arrows on the settings screen step through the skins and ENTER returns", async () => {
+test("arrows on the settings screen change the skin and ENTER returns", async () => {
   const app = await open("./App.tsx");
   const colorStatus = app.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
-  for (const key of ["on", "down", "enter"]) await app.press(`id:key-${key}`);
+  for (const key of ["on", "right", "enter"]) await app.press(`id:key-${key}`);
   expect(app.shows("id:settings")).toBe(false);
   expect(app.spanStyle("text:NORMAL FLOAT RADIAN")?.color).not.toBe(colorStatus);
+});
+
+test("key haptics can be turned off on the settings screen and stay off", async () => {
+  const first = await open("./App.tsx");
+  for (const key of ["on", "down", "right", "enter"]) await first.press(`id:key-${key}`);
+  const second = await open("./App.tsx", { storage: first.storage() });
+  await second.press("id:key-on");
+  const chosen = second.spanStyle("text:Color")?.color;
+  await second.waitUntil(() => second.spanStyle("text:Off")?.color === chosen);
+  expect(second.spanStyle("text:On")?.color).not.toBe(chosen);
 });
 
 test("every key of every skin but ON, which opens settings, is a key the calculator knows", async () => {
