@@ -28,13 +28,16 @@ Texas Instruments.
 - **Lists**: `{1,2,3}`, L₁–L₆ (2nd 1–6; `→L₁` stores, `L₁(2)` reads an element), math element by element (`2L₁+1`,
   `sin(L₁)`, `Y₁(L₁)`), and 2nd LIST: names; OPS dim(, seq(, cumSum(, ΔList(, augment(; MATH min(, max(, mean(,
   median(, sum(, prod(, stdDev(, variance(.
+- **STAT**: 1:Edit… shows L₁–L₆ as columns: type a value and ENTER to store it (the row after the last adds one), DEL
+  removes an element. CALC 1-Var Stats [list] reports x̄, Σx, Σx², Sx, σx, n and the five-number summary;
+  LinReg(ax+b) [xlist, ylist] fits a line with r² and r. Lists left out are L₁ and L₂.
 - **Kept between visits**: memory, settings, functions, window, table and FORMAT settings, history and the skin, in the
   browser's local storage.
 - **Settings (ON)**: ON opens a settings screen for the skin, Color (the default) or Classic, and key haptics, On
   (the default) or Off; tap an option or use ▲ ▼ ◀ ▶, then ON, CLEAR or ENTER to return. Haptics vibrate on Android
   browsers and use Safari's switch-control feedback on iPhones (iOS 18+); desktop browsers have none.
 
-Not yet: statistics (STAT), matrices, complex numbers and programs.
+Not yet: matrices, complex numbers and programs.
 Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.
 
 ### Computer keyboard

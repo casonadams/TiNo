@@ -124,16 +124,18 @@ pub struct FieldRowView<'a> {
     pub editing: Option<(&'a [Token], usize)>,
 }
 
-/// The table: column headers, the rows shown, the selected cell (its
-/// column counted among those shown) and the selected value written out.
+/// The table (TABLE, or STAT EDIT's lists): column headers, the rows shown,
+/// the selected cell (its column counted among those shown), the selected
+/// value written out, and what is typed into the selected cell.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TableView {
     pub headers: Vec<String>,
     pub rows: Vec<Vec<String>>,
     pub selected_row: usize,
     pub selected_column: usize,
-    /// `X=2` or `Y1=4.5`.
+    /// `X=2`, `Y1=4.5` or `L₁(3)=7`; just `L₁(3)=` while a value is typed.
     pub footer: String,
+    pub editing: Option<(Vec<Token>, usize)>,
 }
 
 /// The graph screen: the window, the sampled functions, tick positions, the

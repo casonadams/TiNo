@@ -43,6 +43,7 @@ impl Calculator {
                     ScreenView::Fields(self.fields_view(cursor, |field| field.get(&self.table)))
                 }
                 View::Table(cursor) => ScreenView::Table(self.table_view(*cursor)),
+                View::Lists(editor) => ScreenView::Table(self.list_editor_view(editor)),
                 View::Graph(trace) => ScreenView::Graph(Box::new(self.graph_view(*trace))),
                 View::FreeGraph(cursor) => {
                     ScreenView::Graph(Box::new(self.free_graph_view(*cursor, None)))

@@ -7,5 +7,6 @@ mod lists;
 mod menus;
 mod mode_screen;
 mod persistence;
+mod stats;
 mod support;
 mod table;

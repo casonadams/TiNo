@@ -2,13 +2,15 @@ use super::{Calculator, HOME, HomeState, View, error_view};
 use crate::{
     error::CalcError,
     error_screen::ErrorOrigin,
-    expr::StoreTarget,
-    format::format_value,
+    expr::{Expr, StoreTarget},
+    format::{format_real, format_value},
     home::{HistorySelection, Output},
     keymap::{Action, Command, Edit},
     latex,
     parse::parse,
-    token::Token,
+    stats,
+    token::{ListName, Token},
+    vocabulary::Function,
 };
 
 impl Calculator {
@@ -83,6 +85,16 @@ impl Calculator {
 
     fn run(&mut self, entry: &[Token]) -> Result<Output, CalcError> {
         let statement = parse(entry)?;
+        if let Expr::Call(function, arguments, _) = &statement.expr
+            && function.is_command()
+        {
+            return Ok(Output {
+                entry: entry.to_vec(),
+                latex: latex::statement(&statement),
+                result: String::new(),
+                lines: self.report(*function, arguments)?,
+            });
+        }
         let value = self.context().evaluate(&statement.expr)?;
         match statement.store {
             Some(StoreTarget::Variable(letter)) => self.memory.set(letter, value.clone().real()?),
@@ -95,7 +107,34 @@ impl Calculator {
             entry: entry.to_vec(),
             latex: latex::statement(&statement),
             result,
+            lines: Vec::new(),
         })
+    }
+
+    /// A STAT CALC command's report, one `name=value` line per statistic;
+    /// lists left out are L₁ (and L₂ for the y values).
+    fn report(&self, function: Function, arguments: &[Expr]) -> Result<Vec<String>, CalcError> {
+        let context = self.context();
+        let list = |index: usize, default: ListName| match arguments.get(index) {
+            Some(argument) => context.evaluate(argument)?.list(),
+            None => Ok(self.memory.list(default).to_vec()),
+        };
+        let statistics = match function {
+            Function::LinReg => {
+                stats::linear_regression(&list(0, ListName::L1)?, &list(1, ListName::L2)?)?
+            }
+            _ => stats::one_variable(&list(0, ListName::L1)?)?,
+        };
+        let line =
+            |(name, value): (&str, f64)| format!("{name}={}", format_real(value, self.settings));
+        let header = match function {
+            Function::LinReg => vec!["y=ax+b".to_owned()],
+            _ => Vec::new(),
+        };
+        Ok(header
+            .into_iter()
+            .chain(statistics.into_iter().map(line))
+            .collect())
     }
 
     /// 2nd ENTRY: the newest entry, then each older one on every further

@@ -1,4 +1,7 @@
-use crate::{error::CalcError, table::TableField, token::Token, window_editor::WindowField};
+use crate::{
+    error::CalcError, list_editor::ListEditor, table::TableField, token::Token,
+    window_editor::WindowField,
+};
 
 /// The error screen's choices: back to the home screen, or back to where
 /// the error was raised with the cursor at the fault.
@@ -34,6 +37,8 @@ pub enum ErrorOrigin {
     Graph,
     /// A TBLSET field and the entry typed into it.
     TableField(TableField, Vec<Token>),
+    /// A cell of STAT EDIT, with what was typed into it.
+    ListEditor(ListEditor),
 }
 
 /// The error screen: the error, where it was raised, and the highlighted

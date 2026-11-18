@@ -1,6 +1,7 @@
 import { Text, View } from "nsh";
-import type { TableScreen } from "tino/native";
+import type { CursorStyle, TableScreen } from "tino/native";
 import { scrollTable } from "../../store";
+import { EntryLine } from "../EntryLine";
 import { px } from "../lcdGrid";
 
 /** Table text and row height on the 320-pixel grid: eight rows under a header fit the screen. */
@@ -38,8 +39,8 @@ function Cell(props: { text: string; selected: boolean }) {
   );
 }
 
-/** The table: X and each shown function per row, the selected cell filled, its value written below. Wheel or drag scrolls. */
-export function TableView(props: { table: () => TableScreen }) {
+/** The table (TABLE, or STAT EDIT's lists): a value per cell, the selected cell filled, its value or what is typed into it written below. Wheel or drag scrolls TABLE. */
+export function TableView(props: { table: () => TableScreen; cursorStyle: () => CursorStyle }) {
   let dragStart = 0;
   let dragged = 0;
   let wheeled = 0;
@@ -86,9 +87,21 @@ export function TableView(props: { table: () => TableScreen }) {
           </View>
         )}
       </Each>
-      <Text class="font-mono text-lcd-foreground" style={{ fontSize: cellSize() }} testID="table-footer">
-        {props.table().footer}
-      </Text>
+      <View class="flex-row items-center">
+        <Text class="font-mono text-lcd-foreground" style={{ fontSize: cellSize() }} testID="table-footer">
+          {props.table().footer}
+        </Text>
+        <If when={props.table().entry}>
+          {(entry) => (
+            <EntryLine
+              entry={entry}
+              cursor={() => props.table().entryCursor}
+              cursorStyle={props.cursorStyle}
+              size={cellSize()}
+            />
+          )}
+        </If>
+      </View>
     </View>
   );
 }

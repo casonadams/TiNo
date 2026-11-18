@@ -44,18 +44,22 @@ pub struct FieldsScreen {
     pub rows: Vec<FieldRow>,
 }
 
-/// The table of X and the graphed functions' values.
+/// The table of X and the graphed functions' values, or STAT EDIT's lists.
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct TableScreen {
-    /// `X`, then the shown functions' names.
+    /// `X` and the shown functions' names, or the shown lists' names.
     pub headers: Vec<String>,
     /// The rows shown, one string per column; `ERROR` where a function is undefined.
     pub rows: Vec<Vec<String>>,
     pub selected_row: u32,
     /// The selected column, counted among those shown.
     pub selected_column: u32,
-    /// The selected value written out: `X=2`, `Y1=4.5`.
+    /// The selected value written out: `X=2`, `Y1=4.5`, `L₁(3)=7`; just `L₁(3)=` while a value is typed.
     pub footer: String,
+    /// In STAT EDIT, what is typed into the selected cell, one string per token.
+    pub entry: Option<Vec<String>>,
+    /// The index of the token under the cursor in `entry`.
+    pub entry_cursor: u32,
 }
 
 /// One function's values at the graph's x positions; `null` where undefined.
@@ -205,6 +209,11 @@ pub fn table_screen(view: &calc_core::TableView) -> TableScreen {
         selected_row: index(view.selected_row),
         selected_column: index(view.selected_column),
         footer: view.footer.clone(),
+        entry: view.editing.as_ref().map(|(tokens, _)| texts(tokens)),
+        entry_cursor: view
+            .editing
+            .as_ref()
+            .map_or(0, |(_, cursor)| index(*cursor)),
     }
 }
 

@@ -65,6 +65,8 @@ pub struct HistoryLine {
     pub latex: String,
     /// The result as the calculator formats it.
     pub result: String,
+    /// A command's report instead of a result: `x̄=2.5`, one line each.
+    pub lines: Vec<String>,
     /// Whether ▲ ▼ highlight the entry.
     pub entry_selected: bool,
     /// Whether ▲ ▼ highlight the result.
@@ -205,6 +207,7 @@ fn home_screen(home: calc_core::HomeView<'_>) -> HomeScreen {
             id: line.id,
             latex: line.output.latex.clone(),
             result: line.output.result.clone(),
+            lines: line.output.lines.clone(),
             entry_selected: selected(index, HistoryPart::Entry),
             result_selected: selected(index, HistoryPart::Result),
         });

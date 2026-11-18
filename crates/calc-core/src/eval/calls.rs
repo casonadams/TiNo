@@ -21,6 +21,9 @@ impl Evaluator<'_> {
     /// lists; an argument count it does not take is `ERR:ARGUMENT`.
     pub(super) fn call(&self, function: Function, arguments: &[Expr]) -> Result<Value, CalcError> {
         let (least, most) = function.arity();
+        if function.is_command() {
+            return fail(ErrorKind::Syntax);
+        }
         if !(least..=most).contains(&arguments.len()) {
             return fail(ErrorKind::Argument);
         }

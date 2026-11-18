@@ -204,6 +204,10 @@ fn call_tex(function: Function, arguments: &[Expr]) -> String {
             format!("\\sum_{{{k}={start}}}^{{{end}}}\\left({body}\\right)")
         }
         (Function::FnInt, [body, x, a, b]) => format!("\\int_{{{a}}}^{{{b}}}{body}\\,d{x}"),
+        _ if function.is_command() => {
+            let name = function.text().trim_end().replace(' ', "\\ ");
+            format!("\\mathrm{{{name}}}\\ {}", all.join(", "))
+        }
         _ => format!(
             "{}\\left({}\\right)",
             function_name(function),

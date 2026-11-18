@@ -72,6 +72,17 @@ pub enum ListName {
     L6,
 }
 
+impl ListName {
+    pub const ALL: [ListName; 6] = [
+        ListName::L1,
+        ListName::L2,
+        ListName::L3,
+        ListName::L4,
+        ListName::L5,
+        ListName::L6,
+    ];
+}
+
 /// One unit of an entry: what one key press or menu pick inserts and one
 /// DEL removes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

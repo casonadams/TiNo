@@ -2,7 +2,7 @@ use crate::{
     error::{CalcError, ErrorKind},
     expr::{Constant, Expr, Number, Precedence, Statement, StoreTarget},
     token::Token,
-    vocabulary::{DisplayAs, Operator},
+    vocabulary::{DisplayAs, Function, Operator},
 };
 
 /// Parses an entry with the calculator's rules: `^` groups left to right,
@@ -160,7 +160,7 @@ impl Parser<'_> {
         let at = self.pos;
         self.pos += 1;
         match token {
-            Token::Func(function) => Ok(Expr::Call(function, self.arguments()?, at)),
+            Token::Func(function) => Ok(Expr::Call(function, self.arguments(function)?, at)),
             Token::YVar(slot) => self.y_var(slot),
             Token::List(name) => Ok(Expr::ListName(name, self.index()?)),
             Token::LeftBrace => self.list(),
@@ -205,8 +205,12 @@ impl Parser<'_> {
         Ok(inner)
     }
 
-    /// A function's comma-separated arguments, its `(` consumed.
-    fn arguments(&mut self) -> Result<Vec<Expr>, CalcError> {
+    /// A function's comma-separated arguments, its `(` consumed; none at the
+    /// end of the entry for a command that may take none.
+    fn arguments(&mut self, function: Function) -> Result<Vec<Expr>, CalcError> {
+        if function.arity().0 == 0 && self.peek().is_none() {
+            return Ok(Vec::new());
+        }
         let mut arguments = vec![self.expression()?];
         while self.eat(Token::Comma) {
             arguments.push(self.expression()?);

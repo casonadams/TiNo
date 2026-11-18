@@ -8,14 +8,17 @@ use crate::{format::result_tokens, token::Token};
 /// dropped first.
 const CAPACITY: usize = 50;
 
-/// How an evaluated entry shows: typeset as TeX, and its formatted result;
-/// with the entry's tokens, for ▲ ▼ to paste back.
+/// How an evaluated entry shows: typeset as TeX, and its formatted result
+/// (or, for a command such as 1-Var Stats, its report's lines); with the
+/// entry's tokens, for ▲ ▼ to paste back.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Output {
     #[serde(default)]
     pub entry: Vec<Token>,
     pub latex: String,
     pub result: String,
+    #[serde(default)]
+    pub lines: Vec<String>,
 }
 
 /// The half of a history line ▲ ▼ highlight.
@@ -179,6 +182,7 @@ mod tests {
                 entry: digit(Digit::Five),
                 latex: "5".into(),
                 result: "5".into(),
+                lines: Vec::new(),
             });
         }
         assert_eq!(history.lines().len(), CAPACITY);

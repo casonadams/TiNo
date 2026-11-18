@@ -29,17 +29,32 @@ function HistoryRow(props: { line: () => HistoryLine }) {
           props.line().entrySelected ? "text-lcd" : "text-lcd-foreground"
         }`}
       />
-      <View
-        class={`self-end justify-center ${highlight(props.line().resultSelected)}`}
-        style={{ height: px(GRID.line) }}
+      <If
+        when={props.line().lines.length > 0}
+        else={
+          <View
+            class={`self-end justify-center ${highlight(props.line().resultSelected)}`}
+            style={{ height: px(GRID.line) }}
+          >
+            <Text
+              class={`font-mono ${props.line().resultSelected ? "text-lcd" : "text-lcd-foreground"}`}
+              style={{ fontSize: px(GRID.text) }}
+            >
+              {props.line().result}
+            </Text>
+          </View>
+        }
       >
-        <Text
-          class={`font-mono ${props.line().resultSelected ? "text-lcd" : "text-lcd-foreground"}`}
-          style={{ fontSize: px(GRID.text) }}
-        >
-          {props.line().result}
-        </Text>
-      </View>
+        <Each of={props.line().lines} key="index">
+          {(line) => (
+            <View class="justify-center" style={{ height: px(GRID.line) }}>
+              <Text class="font-mono text-lcd-foreground" style={{ fontSize: px(GRID.text) }}>
+                {line()}
+              </Text>
+            </View>
+          )}
+        </Each>
+      </If>
     </View>
   );
 }

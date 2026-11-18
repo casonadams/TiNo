@@ -105,6 +105,7 @@ impl Calculator {
             selected_row: cursor.row,
             selected_column: cursor.column.saturating_sub(cursor.first_function),
             footer,
+            editing: None,
         }
     }
 }

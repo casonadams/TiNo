@@ -121,6 +121,10 @@ pub enum Function {
     DeltaList,
     Augment,
     Seq,
+    /// STAT CALC's commands, written without a parenthesis and taking lists:
+    /// `1-Var Stats [list]` and `LinReg(ax+b) [xlist, ylist]`.
+    OneVarStats,
+    LinReg,
 }
 
 impl Function {
@@ -167,6 +171,8 @@ impl Function {
             Function::DeltaList => "ΔList(",
             Function::Augment => "augment(",
             Function::Seq => "seq(",
+            Function::OneVarStats => "1-Var Stats ",
+            Function::LinReg => "LinReg(ax+b) ",
         }
     }
 
@@ -183,6 +189,8 @@ impl Function {
             Function::NDeriv => (3, 4),
             Function::Summation => (4, 4),
             Function::FMin | Function::FMax | Function::FnInt | Function::Seq => (4, 5),
+            Function::OneVarStats => (0, 1),
+            Function::LinReg => (0, 2),
             _ => (1, 1),
         }
     }
@@ -199,6 +207,12 @@ impl Function {
                 | Function::Summation
                 | Function::Seq
         )
+    }
+
+    /// Whether it is a command: a whole entry of its own that shows a report
+    /// instead of a value.
+    pub fn is_command(self) -> bool {
+        matches!(self, Function::OneVarStats | Function::LinReg)
     }
 }
 

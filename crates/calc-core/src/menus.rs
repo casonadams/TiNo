@@ -1,5 +1,5 @@
-//! The MATH, TEST, VARS and LIST menus: tabs of items, each typing one token
-//! into the entry the menu was opened from.
+//! The MATH, TEST, VARS, LIST and STAT menus: tabs of items, most typing one
+//! token into the entry the menu was opened from.
 
 use crate::{
     table::TableField,
@@ -8,7 +8,7 @@ use crate::{
     window_editor::WindowField,
 };
 
-/// A menu that types a token.
+/// A menu of the keypad's menu keys.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuKind {
     /// MATH: MATH, NUM and PROB.
@@ -19,14 +19,23 @@ pub enum MenuKind {
     Vars,
     /// 2nd LIST: the list names, OPS and MATH, numbered as on the calculator.
     List,
+    /// STAT: EDIT opens the list editor; CALC types the statistics commands.
+    Stat,
 }
 
-/// One item: the key that picks it, its label, and what it types.
+/// What picking an item does: type a token, or open the list editor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MenuPick {
+    Type(Token),
+    EditLists,
+}
+
+/// One item: the key that picks it, its label, and what picking it does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MenuEntry {
     pub key: char,
     pub label: &'static str,
-    pub token: Token,
+    pub pick: MenuPick,
 }
 
 /// A tab of a menu and its items.
@@ -37,7 +46,11 @@ pub struct MenuTab {
 }
 
 const fn entry(key: char, label: &'static str, token: Token) -> MenuEntry {
-    MenuEntry { key, label, token }
+    MenuEntry {
+        key,
+        label,
+        pick: MenuPick::Type(token),
+    }
 }
 
 const fn function(key: char, function: Function) -> MenuEntry {
@@ -189,6 +202,24 @@ const LIST: [MenuTab; 3] = [
     },
 ];
 
+const STAT: [MenuTab; 2] = [
+    MenuTab {
+        title: "EDIT",
+        entries: &[MenuEntry {
+            key: '1',
+            label: "Edit…",
+            pick: MenuPick::EditLists,
+        }],
+    },
+    MenuTab {
+        title: "CALC",
+        entries: &[
+            function('1', Function::OneVarStats),
+            function('4', Function::LinReg),
+        ],
+    },
+];
+
 impl MenuKind {
     pub fn tabs(self) -> &'static [MenuTab] {
         match self {
@@ -196,6 +227,7 @@ impl MenuKind {
             MenuKind::Test => &TEST,
             MenuKind::Vars => &VARS,
             MenuKind::List => &LIST,
+            MenuKind::Stat => &STAT,
         }
     }
 }
@@ -250,17 +282,17 @@ impl MenuCursor {
         }
     }
 
-    pub fn highlighted_token(self) -> Token {
-        self.current_tab().entries[self.highlighted].token
+    pub fn highlighted_pick(self) -> MenuPick {
+        self.current_tab().entries[self.highlighted].pick
     }
 
-    /// The token of the item on this tab that `key` picks, if any.
-    pub fn token_for_key(self, key: char) -> Option<Token> {
+    /// What the item on this tab that `key` picks does, if there is one.
+    pub fn pick_for_key(self, key: char) -> Option<MenuPick> {
         let entries = self.current_tab().entries;
         entries
             .iter()
             .find(|entry| entry.key == key)
-            .map(|entry| entry.token)
+            .map(|entry| entry.pick)
     }
 }
 
@@ -282,22 +314,27 @@ mod tests {
         let cursor = MenuCursor::new(MenuKind::Math).step_tab(false);
         assert_eq!(cursor.current_tab().title, "PROB");
         let cursor = cursor.step_item(false);
-        assert_eq!(cursor.highlighted_token(), Token::Func(Function::RandInt));
+        assert_eq!(
+            cursor.highlighted_pick(),
+            MenuPick::Type(Token::Func(Function::RandInt))
+        );
     }
 
     #[test]
     fn keys_pick_items_on_the_current_tab() {
         let num = MenuCursor::new(MenuKind::Math).step_tab(true);
         assert_eq!(
-            num.token_for_key('0'),
-            Some(Token::Func(Function::Remainder))
+            num.pick_for_key('0'),
+            Some(MenuPick::Type(Token::Func(Function::Remainder)))
         );
         let math = MenuCursor::new(MenuKind::Math);
         let key = menu_key(Token::Letter(Letter::A)).unwrap();
         assert_eq!(
-            math.token_for_key(key),
-            Some(Token::Func(Function::LogBase))
+            math.pick_for_key(key),
+            Some(MenuPick::Type(Token::Func(Function::LogBase)))
         );
-        assert_eq!(math.token_for_key('B'), None);
+        assert_eq!(math.pick_for_key('B'), None);
+        let stat = MenuCursor::new(MenuKind::Stat);
+        assert_eq!(stat.pick_for_key('1'), Some(MenuPick::EditLists));
     }
 }
