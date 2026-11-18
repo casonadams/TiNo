@@ -365,6 +365,7 @@ fn atom(token: Token) -> Option<Expr> {
     Some(match token {
         Token::Pi => Expr::Constant(Constant::Pi),
         Token::EulerE => Expr::Constant(Constant::E),
+        Token::ImaginaryI => Expr::Constant(Constant::I),
         Token::Letter(letter) => Expr::Variable(letter),
         Token::Ans => Expr::Ans,
         Token::Rand => Expr::Rand,
@@ -378,8 +379,7 @@ fn atom(token: Token) -> Option<Expr> {
 /// not evaluated yet, or a syntax error.
 fn unexpected(token: Token) -> ErrorKind {
     match token {
-        Token::ImaginaryI
-        | Token::SequenceU
+        Token::SequenceU
         | Token::SequenceV
         | Token::SequenceW
         | Token::Quote
@@ -492,6 +492,7 @@ pub(crate) mod tests {
             'M' => Token::Matrix(crate::token::MatrixName::A),
             'T' => Token::Postfix(PostfixOp::Transpose),
             'I' => Token::ImaginaryI,
+            'U' => Token::SequenceU,
             _ => return None,
         })
     }
@@ -524,7 +525,7 @@ pub(crate) mod tests {
 
     #[test]
     fn syntax_not_evaluated_yet_is_reported_as_unsupported() {
-        assert_eq!(error_of("2+I").kind, ErrorKind::Unsupported);
+        assert_eq!(error_of("2+U").kind, ErrorKind::Unsupported);
     }
 
     #[test]

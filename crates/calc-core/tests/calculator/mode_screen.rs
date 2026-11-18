@@ -1,16 +1,5 @@
-use crate::support::{press, pressed, results};
+use crate::support::{choose, press, pressed, results};
 use calc_core::{Calculator, Key, ScreenView};
-
-const QUIT: [Key; 2] = [Key::Second, Key::Mode];
-
-/// Opens MODE, moves `down` rows and `right` options, chooses, and quits.
-fn choose(calculator: &mut Calculator, down: usize, right: usize) {
-    press(calculator, &[Key::Mode]);
-    (0..down).for_each(|_| calculator.press(Key::Down));
-    (0..right).for_each(|_| calculator.press(Key::Right));
-    press(calculator, &[Key::Enter]);
-    press(calculator, &QUIT);
-}
 
 #[test]
 fn the_mode_screen_shows_each_setting_with_the_cursor_on_the_first_row() {
@@ -29,6 +18,7 @@ fn the_mode_screen_shows_each_setting_with_the_cursor_on_the_first_row() {
             ("NORMAL", 0, Some(0)),
             ("FLOAT", 0, None),
             ("RADIAN", 0, None),
+            ("REAL", 0, None),
         ]
     );
 }
@@ -60,7 +50,7 @@ fn degree_mode_measures_angles_in_degrees() {
     assert_eq!(results(&calculator), [".5", "0"]);
     assert_eq!(
         calculator.screen().status,
-        ["NORMAL", "FLOAT", "DEGREE"].map(String::from)
+        ["NORMAL", "FLOAT", "REAL", "DEGREE"].map(String::from)
     );
 }
 

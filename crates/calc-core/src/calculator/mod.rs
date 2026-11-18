@@ -34,7 +34,7 @@ use crate::{
     menus::{MenuCursor, MenuKind},
     mode_screen::ModeCursor,
     modifiers::Modifiers,
-    settings::Settings,
+    settings::{NumberMode, Settings},
     table::{TableCursor, TableField, TableSettings},
     trace::TraceCursor,
     window::Window,
@@ -236,11 +236,13 @@ impl Calculator {
         }
     }
 
-    /// What expressions read: memory, angle units, WINDOW, TBLSET and Y=.
+    /// What expressions read: memory, angle units, whether nonreal answers
+    /// are complex, WINDOW, TBLSET and Y=.
     fn context(&self) -> Context<'_> {
         Context {
             memory: &self.memory,
             angle: self.settings.angle,
+            complex: self.settings.number != NumberMode::Real,
             window: &self.window,
             table: &self.table,
             functions: self.functions.parse_all(),

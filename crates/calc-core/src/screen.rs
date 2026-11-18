@@ -22,8 +22,8 @@ pub enum CursorStyle {
 /// What the screen shows: the status bar's words and the current screen.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Screen<'a> {
-    /// The settings in force, as the status bar shows them (`NORMAL FLOAT RADIAN`).
-    pub status: [String; 3],
+    /// The settings in force, as the status bar shows them (`NORMAL FLOAT REAL RADIAN`).
+    pub status: [String; 4],
     pub cursor_style: CursorStyle,
     pub view: ScreenView<'a>,
 }

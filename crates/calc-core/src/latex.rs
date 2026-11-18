@@ -3,7 +3,7 @@ use crate::{
     field_editor::Field,
     functions::FUNCTION_COUNT,
     token::{ListName, MatrixName},
-    vocabulary::{DisplayAs, Function, Operator, PostfixOp},
+    vocabulary::{Function, Operator, PostfixOp},
 };
 
 /// The entry as TeX, for typesetting in history: fractions for `÷`, raised
@@ -11,10 +11,8 @@ use crate::{
 pub fn statement(statement: &Statement) -> String {
     let mut tex = latex(&statement.expr);
     if let Some(display) = statement.display {
-        tex.push_str(match display {
-            DisplayAs::Fraction => "\\blacktriangleright\\mathrm{Frac}",
-            DisplayAs::Decimal => "\\blacktriangleright\\mathrm{Dec}",
-        });
+        let name = display.text().trim_start_matches('►');
+        tex.push_str(&format!("\\blacktriangleright\\mathrm{{{name}}}"));
     }
     match statement.store {
         Some(StoreTarget::Variable(letter)) => {
@@ -32,6 +30,7 @@ fn latex(expr: &Expr) -> String {
         Expr::Number(number) => number_tex(number),
         Expr::Constant(Constant::Pi) => "\\pi".to_owned(),
         Expr::Constant(Constant::E) => "e".to_owned(),
+        Expr::Constant(Constant::I) => "i".to_owned(),
         Expr::Variable(letter) => letter_tex(letter.symbol()),
         Expr::Ans => "\\mathrm{Ans}".to_owned(),
         Expr::Rand => "\\mathrm{rand}".to_owned(),

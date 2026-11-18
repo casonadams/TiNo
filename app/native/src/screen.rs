@@ -118,7 +118,7 @@ pub struct ErrorScreen {
 pub struct Screen {
     /// Which screen is shown; its part below is set.
     pub kind: ScreenKind,
-    /// The settings in force, as the status bar words them (`NORMAL`, `FLOAT`, `RADIAN`).
+    /// The settings in force, as the status bar words them (`NORMAL`, `FLOAT`, `REAL`, `RADIAN`).
     pub status: Vec<String>,
     /// What the cursor shows.
     pub cursor_style: CursorStyle,

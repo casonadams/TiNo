@@ -13,6 +13,7 @@ fn evaluated(entry: &[Token], memory: &Memory, functions: &[&str]) -> Result<Val
     let context = Context {
         memory,
         angle: Angle::Radian,
+        complex: false,
         window: &Window::standard(),
         table: &TableSettings::default(),
         functions: functions

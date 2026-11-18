@@ -10,6 +10,14 @@ pub fn press(calculator: &mut Calculator, keys: &[Key]) {
     keys.iter().for_each(|&key| calculator.press(key));
 }
 
+/// Opens MODE, moves `down` rows and `right` options, chooses, and quits.
+pub fn choose(calculator: &mut Calculator, down: usize, right: usize) {
+    press(calculator, &[Key::Mode]);
+    (0..down).for_each(|_| calculator.press(Key::Down));
+    (0..right).for_each(|_| calculator.press(Key::Right));
+    press(calculator, &[Key::Enter, Key::Second, Key::Mode]);
+}
+
 pub fn home<'a>(calculator: &'a Calculator) -> HomeView<'a> {
     *calculator
         .screen()

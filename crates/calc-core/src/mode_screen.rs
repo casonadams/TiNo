@@ -1,6 +1,6 @@
 use crate::{
     choice_screen::{ChoiceCursor, ChoiceRow},
-    settings::{Angle, Decimals, FixedPlaces, Notation, Settings},
+    settings::{Angle, Decimals, FixedPlaces, Notation, NumberMode, Settings},
 };
 
 /// A line of the MODE screen: one setting and its choices.
@@ -9,6 +9,7 @@ pub enum ModeRow {
     Notation,
     Decimals,
     Angle,
+    Number,
 }
 
 /// The highlighted option of the MODE screen.
@@ -16,13 +17,19 @@ pub type ModeCursor = ChoiceCursor<ModeRow>;
 
 impl ChoiceRow for ModeRow {
     type Settings = Settings;
-    const ALL: &'static [ModeRow] = &[ModeRow::Notation, ModeRow::Decimals, ModeRow::Angle];
+    const ALL: &'static [ModeRow] = &[
+        ModeRow::Notation,
+        ModeRow::Decimals,
+        ModeRow::Angle,
+        ModeRow::Number,
+    ];
 
     fn options(self) -> &'static [&'static str] {
         match self {
             ModeRow::Notation => &["NORMAL", "SCI", "ENG"],
             ModeRow::Decimals => &["FLOAT", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
             ModeRow::Angle => &["RADIAN", "DEGREE"],
+            ModeRow::Number => &["REAL", "a+bi", "re^θi"],
         }
     }
 
@@ -34,6 +41,7 @@ impl ChoiceRow for ModeRow {
                 Decimals::Fix(places) => places.get() + 1,
             },
             ModeRow::Angle => settings.angle as usize,
+            ModeRow::Number => settings.number as usize,
         }
     }
 
@@ -53,6 +61,10 @@ impl ChoiceRow for ModeRow {
                     .map_or(Decimals::Float, Decimals::Fix);
             }
             ModeRow::Angle => settings.angle = [Angle::Radian, Angle::Degree][option],
+            ModeRow::Number => {
+                settings.number =
+                    [NumberMode::Real, NumberMode::Rectangular, NumberMode::Polar][option];
+            }
         }
     }
 }
@@ -82,11 +94,11 @@ mod tests {
     #[test]
     fn moving_rows_lands_on_the_chosen_option_and_wraps() {
         let settings = Settings {
-            angle: Angle::Degree,
+            number: NumberMode::Polar,
             ..Settings::default()
         };
         let cursor = ModeCursor::new(&settings).step_row(false, &settings);
-        assert_eq!((cursor.row(), cursor.column()), (ModeRow::Angle, 1));
+        assert_eq!((cursor.row(), cursor.column()), (ModeRow::Number, 2));
     }
 
     #[test]

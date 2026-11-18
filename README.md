@@ -17,7 +17,7 @@ Texas Instruments.
   abs(, round(, iPart(, fPart(, int(, min(, max(, lcm(, gcd(, remainder(; rand, nPr, nCr, !, randInt(; = ≠ > ≥ < ≤;
   and, or, xor, not(; the WINDOW and TBLSET settings and Y₁–Y₀ (`Y₁(3)` evaluates Y₁ at 3). ◀ ▶ switch tabs, ▲ ▼
   and ENTER or an item's key pick; they type into the home screen, Y= or a WINDOW/TBLSET field.
-- **MODE**: Normal, Sci, Eng; Float or Fix 0–9; Radian or Degree.
+- **MODE**: Normal, Sci, Eng; Float or Fix 0–9; Radian or Degree; Real, a+bi or re^θi.
 - **Errors**: an error screen with Quit and Goto (back to the token at fault).
 - **Graphing**: ten Y= functions, WINDOW, ZOOM (ZBox, Zoom In/Out, ZDecimal, ZSquare, ZStandard, ZTrig, ZoomFit),
   TRACE, a free cursor on the arrow keys, and FORMAT (2nd ZOOM: CoordOn/Off, GridOff/Dot/Line, AxesOn/Off,
@@ -34,13 +34,16 @@ Texas Instruments.
 - **Matrices**: `[[1,2][3,4]]` (2nd × and 2nd − for the brackets), [A]–[J] from 2nd MATRIX (`→[A]` stores,
   `[A](2,1)` reads an element); `+ − ×`, a number times a matrix, `²`, `³`, `^n`, `⁻¹` and `=`/`≠`; MATRIX MATH det(,
   ᵀ, dim(, identity(, rref(. MATRIX EDIT fills a matrix cell by cell; entering past the last row or column grows it.
+- **Complex numbers**: i (2nd .) in any mode (`(3+4i)(1−2i)` is `11−2i`); in a+bi and re^θi a nonreal answer
+  (`√(⁻4)`, `ln(⁻1)`) is complex instead of `ERR:NONREAL ANSWER`. MATH CPX conj(, real(, imag(, angle(, abs(, ►Rect,
+  ►Polar. Lists, matrices and variables A–θ hold real numbers only; Ans keeps a complex result.
 - **Kept between visits**: memory, settings, functions, window, table and FORMAT settings, history and the skin, in the
   browser's local storage.
 - **Settings (ON)**: ON opens a settings screen for the skin, Color (the default) or Classic, and key haptics, On
   (the default) or Off; tap an option or use ▲ ▼ ◀ ▶, then ON, CLEAR or ENTER to return. Haptics vibrate on Android
   browsers and use Safari's switch-control feedback on iPhones (iOS 18+); desktop browsers have none.
 
-Not yet: complex numbers and programs.
+Not yet: programs.
 Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.
 
 ### Computer keyboard

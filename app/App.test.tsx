@@ -53,7 +53,7 @@ test("MODE changes how results are written and the status bar says so", async ()
     await app.press(`id:key-${key}`);
   }
   for (const key of ["2", "divide", "3", "enter"]) await app.press(`id:key-${key}`);
-  for (const text of [".67", "NORMAL FIX2 RADIAN"]) expect(app.texts()).toContain(text);
+  for (const text of [".67", "NORMAL FIX2 REAL RADIAN"]) expect(app.texts()).toContain(text);
 });
 
 test("a function typed in Y= graphs, and TRACE reports its points", async () => {
@@ -115,29 +115,29 @@ test("the calculator is kept between sessions", async () => {
     await first.press(`id:key-${key}`);
   }
   const second = await open("./App.tsx", { storage: first.storage() });
-  for (const text of ["123", "NORMAL FLOAT DEGREE"]) expect(second.texts()).toContain(text);
+  for (const text of ["123", "NORMAL FLOAT REAL DEGREE"]) expect(second.texts()).toContain(text);
 });
 
 test("ON opens settings, where a skin restyles the calculator and is kept between sessions", async () => {
   const first = await open("./App.tsx");
-  const colorStatus = first.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
+  const colorStatus = first.spanStyle("text:NORMAL FLOAT REAL RADIAN")?.color;
   await first.press("id:key-on");
   expect(first.shows("id:settings")).toBe(true);
   await first.press("id:skin-classic");
   await first.press("id:key-on");
   expect(first.shows("id:settings")).toBe(false);
-  const classicStatus = first.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
+  const classicStatus = first.spanStyle("text:NORMAL FLOAT REAL RADIAN")?.color;
   expect(classicStatus).not.toBe(colorStatus);
   const second = await open("./App.tsx", { storage: first.storage() });
-  await second.waitUntil(() => second.spanStyle("text:NORMAL FLOAT RADIAN")?.color === classicStatus);
+  await second.waitUntil(() => second.spanStyle("text:NORMAL FLOAT REAL RADIAN")?.color === classicStatus);
 });
 
 test("arrows on the settings screen change the skin and ENTER returns", async () => {
   const app = await open("./App.tsx");
-  const colorStatus = app.spanStyle("text:NORMAL FLOAT RADIAN")?.color;
+  const colorStatus = app.spanStyle("text:NORMAL FLOAT REAL RADIAN")?.color;
   for (const key of ["on", "right", "enter"]) await app.press(`id:key-${key}`);
   expect(app.shows("id:settings")).toBe(false);
-  expect(app.spanStyle("text:NORMAL FLOAT RADIAN")?.color).not.toBe(colorStatus);
+  expect(app.spanStyle("text:NORMAL FLOAT REAL RADIAN")?.color).not.toBe(colorStatus);
 });
 
 test("key haptics can be turned off on the settings screen and stay off", async () => {

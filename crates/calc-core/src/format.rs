@@ -1,6 +1,6 @@
 use crate::{
-    eval::Value,
-    settings::{Decimals, Notation, Settings},
+    eval::{Complex, Value},
+    settings::{Decimals, Notation, NumberMode, Settings},
     token::{Digit, Token},
     vocabulary::{DisplayAs, Operator},
 };
@@ -29,6 +29,13 @@ pub fn result_tokens(text: &str) -> Vec<Token> {
             '⁻' => Some(Token::Negate),
             'ᴇ' => Some(Token::Exponent),
             '/' => Some(Token::Op(Operator::Divide)),
+            '+' => Some(Token::Op(Operator::Add)),
+            '−' => Some(Token::Op(Operator::Subtract)),
+            '^' => Some(Token::Op(Operator::Power)),
+            '(' => Some(Token::LeftParen),
+            ')' => Some(Token::RightParen),
+            'e' => Some(Token::EulerE),
+            'i' => Some(Token::ImaginaryI),
             '{' => Some(Token::LeftBrace),
             '}' => Some(Token::RightBrace),
             '[' => Some(Token::LeftBracket),
@@ -44,9 +51,10 @@ pub fn result_tokens(text: &str) -> Vec<Token> {
 const FIGURE_SPACE: char = '\u{2007}';
 
 /// A result as the home screen shows it: a number as `format_real` (or
-/// `format_fraction` after `►Frac`) writes it, a list as its elements
-/// between braces (`{1 2.5 ⁻3}`), a matrix one line per row with its
-/// columns aligned (`[[1 2]` over ` [3 4]]`).
+/// `format_fraction` after `►Frac`) writes it, a complex number as `a+bi`
+/// or `re^(θi)` by mode or `►Rect`/`►Polar`, a list as its elements between
+/// braces (`{1 2.5 ⁻3}`), a matrix one line per row with its columns
+/// aligned (`[[1 2]` over ` [3 4]]`).
 pub fn format_value(value: &Value, settings: Settings, display: Option<DisplayAs>) -> String {
     let number = |x: f64| match display {
         Some(DisplayAs::Fraction) => format_fraction(x, settings),
@@ -54,6 +62,14 @@ pub fn format_value(value: &Value, settings: Settings, display: Option<DisplayAs
     };
     match value {
         Value::Real(x) => number(*x),
+        Value::Complex(z) => {
+            let polar = match display {
+                Some(DisplayAs::Polar) => true,
+                Some(DisplayAs::Rectangular) => false,
+                _ => settings.number == NumberMode::Polar,
+            };
+            format_complex(*z, polar, &number)
+        }
         Value::List(list) => {
             let elements: Vec<String> = list.iter().map(|&x| number(x)).collect();
             format!("{{{}}}", elements.join(" "))
@@ -65,6 +81,23 @@ pub fn format_value(value: &Value, settings: Settings, display: Option<DisplayAs
                 .collect();
             format_matrix(&cells)
         }
+    }
+}
+
+/// `a+bi` (`3−4i`, `⁻2i`, `i`), or `re^(θi)` with θ in radians.
+fn format_complex(z: Complex, polar: bool, number: &impl Fn(f64) -> String) -> String {
+    if polar {
+        return format!("{}e^({}i)", number(z.abs()), number(z.arg()));
+    }
+    let coefficient = |im: f64| match im.abs() {
+        1.0 => String::new(),
+        magnitude => number(magnitude),
+    };
+    let sign = if z.im < 0.0 { "−" } else { "+" };
+    match z.re {
+        0.0 if z.im < 0.0 => format!("⁻{}i", coefficient(z.im)),
+        0.0 => format!("{}i", coefficient(z.im)),
+        re => format!("{}{sign}{}i", number(re), coefficient(z.im)),
     }
 }
 

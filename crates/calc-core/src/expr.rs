@@ -45,10 +45,12 @@ pub struct Number {
     pub exponent: Option<String>,
 }
 
+/// A constant: π, e, and the imaginary unit i.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Constant {
     Pi,
     E,
+    I,
 }
 
 /// A whole entry: an expression, optionally converted for display (`►Frac`)

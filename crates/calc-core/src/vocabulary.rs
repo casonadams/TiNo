@@ -133,6 +133,12 @@ pub enum Function {
     Det,
     Identity,
     Rref,
+    /// MATH CPX: a complex number's conjugate, real and imaginary parts, and
+    /// angle.
+    Conj,
+    RealPart,
+    ImagPart,
+    Angle,
 }
 
 impl Function {
@@ -184,6 +190,10 @@ impl Function {
             Function::Det => "det(",
             Function::Identity => "identity(",
             Function::Rref => "rref(",
+            Function::Conj => "conj(",
+            Function::RealPart => "real(",
+            Function::ImagPart => "imag(",
+            Function::Angle => "angle(",
         }
     }
 
@@ -228,11 +238,15 @@ impl Function {
 }
 
 /// How the result of an entry is written, chosen by ending it with
-/// `►Frac` or `►Dec`.
+/// `►Frac`, `►Dec`, `►Rect` or `►Polar`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DisplayAs {
     Fraction,
     Decimal,
+    /// A complex result as `a+bi`, whatever the mode.
+    Rectangular,
+    /// A complex result as `re^(θi)`, whatever the mode.
+    Polar,
 }
 
 impl DisplayAs {
@@ -240,6 +254,8 @@ impl DisplayAs {
         match self {
             DisplayAs::Fraction => "►Frac",
             DisplayAs::Decimal => "►Dec",
+            DisplayAs::Rectangular => "►Rect",
+            DisplayAs::Polar => "►Polar",
         }
     }
 }

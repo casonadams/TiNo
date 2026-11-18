@@ -118,6 +118,7 @@ mod tests {
         let context = Context {
             memory: &crate::eval::Memory::default(),
             angle: crate::settings::Angle::Radian,
+            complex: false,
             window: &crate::window::Window::standard(),
             table: &crate::table::TableSettings::default(),
             functions: Vec::new(),

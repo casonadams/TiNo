@@ -1,4 +1,5 @@
 mod calc_menu;
+mod complex;
 mod graph_format;
 mod graphing;
 mod home_screen;

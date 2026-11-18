@@ -58,17 +58,30 @@ pub enum Angle {
     Degree,
 }
 
+/// Whether results may be complex, and how complex results are written:
+/// REAL (a nonreal answer is an error), a+bi, or re^θi.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum NumberMode {
+    #[default]
+    Real,
+    Rectangular,
+    Polar,
+}
+
 /// The MODE settings this calculator honors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Settings {
     pub notation: Notation,
     pub decimals: Decimals,
     pub angle: Angle,
+    #[serde(default)]
+    pub number: NumberMode,
 }
 
 impl Settings {
-    /// The status bar's words for the settings (`NORMAL FLOAT RADIAN`, `SCI FIX2 DEGREE`).
-    pub fn labels(self) -> [String; 3] {
+    /// The status bar's words for the settings, in the calculator's order
+    /// (`NORMAL FLOAT REAL RADIAN`, `SCI FIX2 a+bi DEGREE`).
+    pub fn labels(self) -> [String; 4] {
         let notation = match self.notation {
             Notation::Normal => "NORMAL",
             Notation::Scientific => "SCI",
@@ -78,10 +91,20 @@ impl Settings {
             Decimals::Float => "FLOAT".to_owned(),
             Decimals::Fix(places) => format!("FIX{}", places.get()),
         };
+        let number = match self.number {
+            NumberMode::Real => "REAL",
+            NumberMode::Rectangular => "a+bi",
+            NumberMode::Polar => "re^θi",
+        };
         let angle = match self.angle {
             Angle::Radian => "RADIAN",
             Angle::Degree => "DEGREE",
         };
-        [notation.to_owned(), decimals, angle.to_owned()]
+        [
+            notation.to_owned(),
+            decimals,
+            number.to_owned(),
+            angle.to_owned(),
+        ]
     }
 }

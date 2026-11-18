@@ -1,5 +1,7 @@
 use super::{
-    Evaluator, arithmetic, fail,
+    Evaluator, arithmetic,
+    complex::{self, Complex},
+    fail,
     lists::list_function,
     matrix,
     value::{Value, broadcast},
@@ -35,16 +37,39 @@ impl Evaluator<'_> {
             .iter()
             .map(|argument| self.value(argument))
             .collect::<Result<Vec<_>, _>>()?;
+        self.apply((function, least), &values)
+    }
+
+    /// `function`, taking at least `least` arguments, of evaluated
+    /// arguments: of one complex number; MATRIX's and LIST's of matrices and
+    /// lists; else element by element. A nonreal answer from one real
+    /// number is complex where the mode allows.
+    fn apply(
+        &self,
+        (function, least): (Function, usize),
+        values: &[Value],
+    ) -> Result<Value, CalcError> {
+        let angle = self.context.angle;
+        if let [Value::Complex(z)] = values {
+            return complex::function(function, *z, angle)
+                .unwrap_or_else(|| fail(ErrorKind::DataType));
+        }
         if let Some(result) =
-            matrix::function(function, &values).or_else(|| list_function(function, &values))
+            matrix::function(function, values).or_else(|| list_function(function, values))
         {
             return result;
         }
-        broadcast(&values, |reals| match *reals {
+        let result = broadcast(values, |reals| match *reals {
             [x] if least == 1 => self.unary(function, x),
             [a, b] => self.binary(function, (a, b)),
             _ => fail(ErrorKind::Argument),
-        })
+        });
+        match (result, values) {
+            (Err(error), [Value::Real(x)]) if self.nonreal_is_complex(error) => {
+                complex::function(function, Complex::real(*x), angle).unwrap_or(Err(error))
+            }
+            (result, _) => result,
+        }
     }
 
     fn unary(&self, function: Function, x: f64) -> Result<f64, CalcError> {
@@ -55,6 +80,9 @@ impl Evaluator<'_> {
                 trig::inverse(function, x, angle)
             }
             Function::Round => Ok(significant(x)),
+            Function::Conj | Function::RealPart => Ok(x),
+            Function::ImagPart => Ok(0.0),
+            Function::Angle => Ok(complex::in_units(0f64.atan2(x), angle)),
             _ => elementary(function, x),
         }
     }

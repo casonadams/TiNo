@@ -57,7 +57,7 @@ fn a_reloaded_calculator_keeps_its_home_screen_settings_and_variables() {
     assert_eq!(results(&loaded), ["5"]);
     assert_eq!(
         loaded.screen().status,
-        ["NORMAL", "FIX2", "DEGREE"].map(String::from)
+        ["NORMAL", "FIX2", "REAL", "DEGREE"].map(String::from)
     );
     press(&mut loaded, &[Key::Alpha, Key::Math, Key::Enter]);
     assert_eq!(results(&loaded)[1], "5.00");

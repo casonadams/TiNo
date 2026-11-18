@@ -75,6 +75,7 @@ mod tests {
         let context = Context {
             memory: &Memory::default(),
             angle: Angle::Radian,
+            complex: false,
             window,
             table: &TableSettings::default(),
             functions: Vec::new(),

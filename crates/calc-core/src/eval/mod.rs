@@ -1,12 +1,14 @@
-//! Evaluating expressions over real numbers, lists and matrices.
+//! Evaluating expressions over real and complex numbers, lists and matrices.
 
 mod arithmetic;
 mod calculus;
 mod calls;
+mod complex;
 mod lists;
 mod matrix;
 mod value;
 
+pub use complex::Complex;
 pub use matrix::{LARGEST_DIMENSION, Matrix, dimension};
 pub use value::Value;
 
@@ -110,6 +112,9 @@ impl Memory {
 pub struct Context<'a> {
     pub memory: &'a Memory,
     pub angle: Angle,
+    /// Whether a nonreal answer from real numbers is a complex number (the
+    /// a+bi and re^θi modes) rather than `ERR:NONREAL ANSWER`.
+    pub complex: bool,
     pub window: &'a Window,
     pub table: &'a TableSettings,
     /// Each Y= function parsed, or why reading it fails.
@@ -173,6 +178,7 @@ impl<'a> Evaluator<'a> {
             Expr::Number(number) => real(number.value),
             Expr::Constant(Constant::Pi) => real(PI),
             Expr::Constant(Constant::E) => real(E),
+            Expr::Constant(Constant::I) => Ok(Value::Complex(complex::I)),
             Expr::Variable(letter) => {
                 real(self.bound[*letter as usize].unwrap_or(memory.get(*letter)))
             }
@@ -189,17 +195,18 @@ impl<'a> Evaluator<'a> {
             Expr::Matrix(rows) => self.matrix(rows),
             Expr::MatrixName(name, index) => self.matrix_name(*name, index.as_deref()),
             Expr::YVar(slot, argument) => self.y_var(*slot, argument.as_deref()),
-            Expr::Negate(operand) => self.value(operand)?.map(|x| Ok(-x)),
+            Expr::Negate(operand) => negate(self.value(operand)?),
             Expr::ImpliedMultiply(left, right) => {
-                operate(Operator::Multiply, (self.value(left)?, self.value(right)?))
+                self.operate(Operator::Multiply, (self.value(left)?, self.value(right)?))
             }
-            Expr::Binary(op, left, right, at) => {
-                located(operate(*op, (self.value(left)?, self.value(right)?)), *at)
-            }
+            Expr::Binary(op, left, right, at) => located(
+                self.operate(*op, (self.value(left)?, self.value(right)?)),
+                *at,
+            ),
             Expr::Postfix(op, operand, at) => located(postfix(*op, self.value(operand)?), *at),
             Expr::Call(function, arguments, at) => located(self.call(*function, arguments), *at),
         };
-        value?.map(in_range)
+        checked(value?)
     }
 
     fn real(&self, expr: &Expr) -> Result<f64, CalcError> {
@@ -279,21 +286,69 @@ impl<'a> Evaluator<'a> {
         };
         result.map_err(|error| CalcError::new(error.kind))
     }
+
+    /// An infix operator: element by element over reals and lists, as
+    /// matrix arithmetic when either side is a matrix, and over complex
+    /// numbers when either side is one.
+    fn operate(&self, op: Operator, (left, right): (Value, Value)) -> Result<Value, CalcError> {
+        match (&left, &right) {
+            (Value::Matrix(_), _) | (_, Value::Matrix(_)) => matrix::binary(op, left, right),
+            (Value::Complex(_), _) | (_, Value::Complex(_)) => {
+                match left.as_complex().zip(right.as_complex()) {
+                    Some(pair) => complex::binary(op, pair),
+                    None => fail(ErrorKind::DataType),
+                }
+            }
+            _ => self.operate_reals(op, (left, right)),
+        }
+    }
+
+    /// An infix operator over reals and lists; a nonreal answer from two
+    /// real numbers is complex where the mode allows.
+    fn operate_reals(
+        &self,
+        op: Operator,
+        (left, right): (Value, Value),
+    ) -> Result<Value, CalcError> {
+        let pair = left.as_complex().zip(right.as_complex());
+        match (left.zip(right, |a, b| arithmetic::binary(op, a, b)), pair) {
+            (Err(error), Some(pair)) if self.nonreal_is_complex(error) => complex::binary(op, pair),
+            (result, _) => result,
+        }
+    }
+
+    /// Whether `error` is a nonreal answer that is instead complex in this mode.
+    fn nonreal_is_complex(&self, error: CalcError) -> bool {
+        self.context.complex && error.kind == ErrorKind::NonReal
+    }
 }
 
-/// An infix operator: element by element over reals and lists, as matrix
-/// arithmetic when either side is a matrix.
-fn operate(op: Operator, (left, right): (Value, Value)) -> Result<Value, CalcError> {
-    if matches!(left, Value::Matrix(_)) || matches!(right, Value::Matrix(_)) {
-        return matrix::binary(op, left, right);
+fn negate(value: Value) -> Result<Value, CalcError> {
+    match value {
+        Value::Complex(z) => Ok(Value::Complex(Complex {
+            re: -z.re,
+            im: -z.im,
+        })),
+        value => value.map(|x| Ok(-x)),
     }
-    left.zip(right, |a, b| arithmetic::binary(op, a, b))
 }
 
 fn postfix(op: PostfixOp, operand: Value) -> Result<Value, CalcError> {
     match operand {
         Value::Matrix(m) => matrix::postfix(op, &m).map(Value::Matrix),
+        Value::Complex(z) => complex::postfix(op, z),
         value => value.map(|x| arithmetic::postfix(op, x)),
+    }
+}
+
+/// The value with each number overflowing as an error and underflowing to 0.
+fn checked(value: Value) -> Result<Value, CalcError> {
+    match value {
+        Value::Complex(z) => Ok(complex::simplified(Complex {
+            re: in_range(z.re)?,
+            im: in_range(z.im)?,
+        })),
+        value => value.map(in_range),
     }
 }
 
@@ -313,9 +368,7 @@ fn in_range(value: f64) -> Result<f64, CalcError> {
 
 /// An operation's result, its error placed at the operation's token.
 fn located(result: Result<Value, CalcError>, at: usize) -> Result<Value, CalcError> {
-    result
-        .and_then(|value| value.map(in_range))
-        .map_err(|error| error.or_at(at))
+    result.and_then(checked).map_err(|error| error.or_at(at))
 }
 
 /// `value` as an integer, or a domain error when it has a fractional part

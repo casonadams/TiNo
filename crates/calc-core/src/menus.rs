@@ -64,7 +64,7 @@ const fn operator(key: char, label: &'static str, operator: Operator) -> MenuEnt
     entry(key, label, Token::Op(operator))
 }
 
-const MATH: [MenuTab; 3] = [
+const MATH: [MenuTab; 4] = [
     MenuTab {
         title: "MATH",
         entries: &[
@@ -94,6 +94,18 @@ const MATH: [MenuTab; 3] = [
             function('8', Function::Lcm),
             function('9', Function::Gcd),
             function('0', Function::Remainder),
+        ],
+    },
+    MenuTab {
+        title: "CPX",
+        entries: &[
+            function('1', Function::Conj),
+            function('2', Function::RealPart),
+            function('3', Function::ImagPart),
+            function('4', Function::Angle),
+            function('5', Function::Abs),
+            entry('6', "►Rect", Token::Display(DisplayAs::Rectangular)),
+            entry('7', "►Polar", Token::Display(DisplayAs::Polar)),
         ],
     },
     MenuTab {

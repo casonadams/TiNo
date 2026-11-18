@@ -1,16 +1,18 @@
 use serde::{Deserialize, Serialize};
 
-use super::fail;
+use super::{complex::Complex, fail};
 use crate::error::{CalcError, ErrorKind};
 
-/// What an expression evaluates to: a real number, a list of them, or a
-/// matrix (its rows).
+/// What an expression evaluates to: a real number, a list of them, a
+/// matrix (its rows), or a complex number.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Value {
     Real(f64),
     List(Vec<f64>),
     Matrix(Vec<Vec<f64>>),
+    /// Kept as `{"re":…,"im":…}`, after lists, which would read as it too.
+    Complex(Complex),
 }
 
 impl Default for Value {
@@ -44,10 +46,21 @@ impl Value {
         }
     }
 
-    /// `f` of a real number, or of each element of a list or matrix.
+    /// A real or complex number as a complex one; `None` for a list or matrix.
+    pub fn as_complex(&self) -> Option<Complex> {
+        match self {
+            Value::Real(x) => Some(Complex::real(*x)),
+            Value::Complex(z) => Some(*z),
+            _ => None,
+        }
+    }
+
+    /// `f` of a real number, or of each element of a list or matrix;
+    /// `ERR:DATA TYPE` for a complex number.
     pub fn map(self, f: impl Fn(f64) -> Result<f64, CalcError>) -> Result<Value, CalcError> {
         match self {
             Value::Real(x) => f(x).map(Value::Real),
+            Value::Complex(_) => fail(ErrorKind::DataType),
             Value::List(list) => map_all(list, &f).map(Value::List),
             Value::Matrix(rows) => rows
                 .into_iter()
@@ -77,12 +90,13 @@ fn map_all(
 
 /// `f` of the values' reals, or element by element when any is a list (a
 /// real number pairs with each element); `ERR:DIM MISMATCH` for lists of
-/// different lengths, `ERR:DATA TYPE` for a matrix.
+/// different lengths, `ERR:DATA TYPE` for a complex number or matrix.
 pub fn broadcast(
     values: &[Value],
     f: impl Fn(&[f64]) -> Result<f64, CalcError>,
 ) -> Result<Value, CalcError> {
-    if values.iter().any(|value| matches!(value, Value::Matrix(_))) {
+    let other = |value: &Value| matches!(value, Value::Complex(_) | Value::Matrix(_));
+    if values.iter().any(other) {
         return fail(ErrorKind::DataType);
     }
     let mut lengths = values.iter().filter_map(|value| match value {
