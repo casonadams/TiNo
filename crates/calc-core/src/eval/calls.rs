@@ -1,6 +1,7 @@
 use super::{
     Evaluator, arithmetic, fail,
     lists::list_function,
+    matrix,
     value::{Value, broadcast},
     whole,
 };
@@ -34,7 +35,9 @@ impl Evaluator<'_> {
             .iter()
             .map(|argument| self.value(argument))
             .collect::<Result<Vec<_>, _>>()?;
-        if let Some(result) = list_function(function, &values) {
+        if let Some(result) =
+            matrix::function(function, &values).or_else(|| list_function(function, &values))
+        {
             return result;
         }
         broadcast(&values, |reals| match *reals {

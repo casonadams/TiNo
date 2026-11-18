@@ -32,16 +32,19 @@ function HistoryRow(props: { line: () => HistoryLine }) {
       <If
         when={props.line().lines.length > 0}
         else={
-          <View
-            class={`self-end justify-center ${highlight(props.line().resultSelected)}`}
-            style={{ height: px(GRID.line) }}
-          >
-            <Text
-              class={`font-mono ${props.line().resultSelected ? "text-lcd" : "text-lcd-foreground"}`}
-              style={{ fontSize: px(GRID.text) }}
-            >
-              {props.line().result}
-            </Text>
+          <View class={`self-end ${highlight(props.line().resultSelected)}`}>
+            <Each of={props.line().result.split("\n")} key="index">
+              {(row) => (
+                <View class="justify-center" style={{ height: px(GRID.line) }}>
+                  <Text
+                    class={`font-mono ${props.line().resultSelected ? "text-lcd" : "text-lcd-foreground"}`}
+                    style={{ fontSize: px(GRID.text) }}
+                  >
+                    {row()}
+                  </Text>
+                </View>
+              )}
+            </Each>
           </View>
         }
       >

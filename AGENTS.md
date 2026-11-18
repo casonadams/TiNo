@@ -15,9 +15,9 @@ Three layers; dependencies point down only.
 - `Calculator::press(Key)` is the single entry for key presses; `Calculator::screen()` is the single view model.
   Gestures enter through `pan_graph`, `zoom_graph`, `trace_at` and `scroll_table`, all taking fractions, never pixels.
 - Each screen has a state type (`ModeCursor`, `ErrorMenu`, `YCursor`, `FieldCursor<F>`, `TableCursor`,
-  `TraceCursor`, `ListMenu`, `ListEditor`) and a handler in `crates/calc-core/src/calculator/`. The screen keys (Y=, WINDOW, ZOOM,
-  TRACE, GRAPH, TBLSET, TABLE, MODE, 2nd QUIT) are routed in `calculator/mod.rs` and work from every screen but the
-  error screen.
+  `TraceCursor`, `ListMenu`, `GridEditor`) and a handler in `crates/calc-core/src/calculator/`. The screen keys (Y=,
+  WINDOW, ZOOM, TRACE, GRAPH, TBLSET, TABLE, MODE, 2nd QUIT) are routed in `calculator/mod.rs` and work from every
+  screen but the error screen.
 - Storage is the app's job: `app/store.ts` saves `Calculator.save()` under `tino.calculator` after every change and
   restores it on start; `app/skinStore.ts` keeps the skin under `tino.skin`. Rust's `nsh_core::storage` is not
   reachable from class methods called by TSX.

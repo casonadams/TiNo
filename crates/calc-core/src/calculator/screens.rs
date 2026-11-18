@@ -2,8 +2,8 @@ use super::{Calculator, HOME, OpenMenu, View, error_view};
 use crate::{
     error_screen::{ErrorChoice, ErrorMenu, ErrorOrigin},
     field_editor::FieldCursor,
+    grid_editor::GridEditor,
     keymap::{Action, Command, Edit},
-    list_editor::ListEditor,
     list_menu::ListMenu,
     menus::{MenuCursor, MenuPick, menu_key},
     token::{Digit, Token},
@@ -55,7 +55,7 @@ impl Calculator {
                 cursor.editor.place_cursor(position);
                 View::TableSetup(cursor)
             }
-            ErrorOrigin::ListEditor(editor) => View::Lists(editor),
+            ErrorOrigin::Grid(grid, editor) => View::Grid(grid, editor),
         }
     }
 
@@ -127,7 +127,7 @@ impl Calculator {
         };
         match pick {
             Some(MenuPick::Type(token)) => self.perform_in(*under, Action::Insert(token)),
-            Some(MenuPick::EditLists) => View::Lists(ListEditor::default()),
+            Some(MenuPick::Edit(grid)) => View::Grid(grid, GridEditor::default()),
             None => moved(cursor, under),
         }
     }

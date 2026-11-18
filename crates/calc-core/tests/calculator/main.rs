@@ -4,6 +4,7 @@ mod graphing;
 mod home_screen;
 mod keypad;
 mod lists;
+mod matrices;
 mod menus;
 mod mode_screen;
 mod persistence;

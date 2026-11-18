@@ -1,9 +1,10 @@
-//! The MATH, TEST, VARS, LIST and STAT menus: tabs of items, most typing one
-//! token into the entry the menu was opened from.
+//! The MATH, TEST, VARS, LIST, STAT and MATRIX menus: tabs of items, most
+//! typing one token into the entry the menu was opened from.
 
 use crate::{
+    grid_editor::Grid,
     table::TableField,
-    token::{ListName, Token},
+    token::{ListName, MatrixName, Token},
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
     window_editor::WindowField,
 };
@@ -21,13 +22,15 @@ pub enum MenuKind {
     List,
     /// STAT: EDIT opens the list editor; CALC types the statistics commands.
     Stat,
+    /// 2nd MATRIX: the matrix names, MATH, and EDIT, which opens a matrix's editor.
+    Matrix,
 }
 
-/// What picking an item does: type a token, or open the list editor.
+/// What picking an item does: type a token, or open a grid editor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuPick {
     Type(Token),
-    EditLists,
+    Edit(Grid),
 }
 
 /// One item: the key that picks it, its label, and what picking it does.
@@ -208,7 +211,7 @@ const STAT: [MenuTab; 2] = [
         entries: &[MenuEntry {
             key: '1',
             label: "Edit…",
-            pick: MenuPick::EditLists,
+            pick: MenuPick::Edit(Grid::Lists),
         }],
     },
     MenuTab {
@@ -220,6 +223,51 @@ const STAT: [MenuTab; 2] = [
     },
 ];
 
+/// Each matrix's key: 1 to 9, then 0, as the menus number ten items.
+const MATRIX_KEYS: [char; 10] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+
+const fn matrix_names() -> [MenuEntry; 10] {
+    let mut entries = [entry('1', "", Token::Matrix(MatrixName::A)); 10];
+    let mut index = 0;
+    while index < 10 {
+        let name = MatrixName::ALL[index];
+        entries[index] = entry(MATRIX_KEYS[index], name.text(), Token::Matrix(name));
+        index += 1;
+    }
+    entries
+}
+
+const fn matrix_editors() -> [MenuEntry; 10] {
+    let mut entries = matrix_names();
+    let mut index = 0;
+    while index < 10 {
+        entries[index].pick = MenuPick::Edit(Grid::Matrix(MatrixName::ALL[index]));
+        index += 1;
+    }
+    entries
+}
+
+const MATRIX: [MenuTab; 3] = [
+    MenuTab {
+        title: "NAMES",
+        entries: &matrix_names(),
+    },
+    MenuTab {
+        title: "MATH",
+        entries: &[
+            function('1', Function::Det),
+            entry('2', "ᵀ", Token::Postfix(PostfixOp::Transpose)),
+            function('3', Function::Dim),
+            function('5', Function::Identity),
+            function('B', Function::Rref),
+        ],
+    },
+    MenuTab {
+        title: "EDIT",
+        entries: &matrix_editors(),
+    },
+];
+
 impl MenuKind {
     pub fn tabs(self) -> &'static [MenuTab] {
         match self {
@@ -228,6 +276,7 @@ impl MenuKind {
             MenuKind::Vars => &VARS,
             MenuKind::List => &LIST,
             MenuKind::Stat => &STAT,
+            MenuKind::Matrix => &MATRIX,
         }
     }
 }
@@ -334,7 +383,16 @@ mod tests {
             Some(MenuPick::Type(Token::Func(Function::LogBase)))
         );
         assert_eq!(math.pick_for_key('B'), None);
+    }
+
+    #[test]
+    fn edit_items_open_grid_editors() {
         let stat = MenuCursor::new(MenuKind::Stat);
-        assert_eq!(stat.pick_for_key('1'), Some(MenuPick::EditLists));
+        assert_eq!(stat.pick_for_key('1'), Some(MenuPick::Edit(Grid::Lists)));
+        let editors = MenuCursor::new(MenuKind::Matrix).step_tab(false);
+        assert_eq!(
+            editors.pick_for_key('0'),
+            Some(MenuPick::Edit(Grid::Matrix(MatrixName::J)))
+        );
     }
 }

@@ -57,6 +57,8 @@ pub enum PostfixOp {
     Cube,
     Inverse,
     Factorial,
+    /// A matrix's transpose, from MATRIX MATH.
+    Transpose,
 }
 
 impl PostfixOp {
@@ -66,6 +68,7 @@ impl PostfixOp {
             PostfixOp::Cube => "³",
             PostfixOp::Inverse => "⁻¹",
             PostfixOp::Factorial => "!",
+            PostfixOp::Transpose => "ᵀ",
         }
     }
 }
@@ -125,6 +128,11 @@ pub enum Function {
     /// `1-Var Stats [list]` and `LinReg(ax+b) [xlist, ylist]`.
     OneVarStats,
     LinReg,
+    /// MATRIX MATH: the determinant, the n×n identity matrix, and the
+    /// reduced row-echelon form.
+    Det,
+    Identity,
+    Rref,
 }
 
 impl Function {
@@ -173,6 +181,9 @@ impl Function {
             Function::Seq => "seq(",
             Function::OneVarStats => "1-Var Stats ",
             Function::LinReg => "LinReg(ax+b) ",
+            Function::Det => "det(",
+            Function::Identity => "identity(",
+            Function::Rref => "rref(",
         }
     }
 

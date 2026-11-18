@@ -14,6 +14,7 @@ pub(super) fn postfix(op: PostfixOp, x: f64) -> Result<f64, CalcError> {
         PostfixOp::Inverse if x == 0.0 => fail(ErrorKind::DivideByZero),
         PostfixOp::Inverse => Ok(1.0 / x),
         PostfixOp::Factorial => factorial(x),
+        PostfixOp::Transpose => fail(ErrorKind::DataType),
     }
 }
 

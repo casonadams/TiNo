@@ -2,7 +2,7 @@ use crate::{
     expr::{Constant, Expr, Number, Precedence, Statement, StoreTarget},
     field_editor::Field,
     functions::FUNCTION_COUNT,
-    token::ListName,
+    token::{ListName, MatrixName},
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
 };
 
@@ -21,6 +21,7 @@ pub fn statement(statement: &Statement) -> String {
             tex.push_str(&format!("\\to {}", letter_tex(letter.symbol())));
         }
         Some(StoreTarget::List(name)) => tex.push_str(&format!("\\to {}", list_tex(name))),
+        Some(StoreTarget::Matrix(name)) => tex.push_str(&format!("\\to {}", matrix_tex(name))),
         None => {}
     }
     tex
@@ -43,6 +44,22 @@ fn latex(expr: &Expr) -> String {
         Expr::ListName(name, index) => match index {
             Some(index) => format!("{}\\left({}\\right)", list_tex(*name), latex(index)),
             None => list_tex(*name),
+        },
+        Expr::Matrix(rows) => {
+            let rows: Vec<String> = rows
+                .iter()
+                .map(|row| row.iter().map(latex).collect::<Vec<_>>().join("&"))
+                .collect();
+            format!("\\begin{{bmatrix}}{}\\end{{bmatrix}}", rows.join("\\\\"))
+        }
+        Expr::MatrixName(name, index) => match index.as_deref() {
+            Some((row, column)) => format!(
+                "{}\\left({},{}\\right)",
+                matrix_tex(*name),
+                latex(row),
+                latex(column)
+            ),
+            None => matrix_tex(*name),
         },
         Expr::YVar(slot, argument) => y_var_tex(*slot, argument.as_deref()),
         Expr::Negate(operand) => format!("-{}", operand_tex(operand, Precedence::Negation)),
@@ -72,6 +89,12 @@ fn letter_tex(symbol: &str) -> String {
 /// `L₁` as `\mathrm{L}_{1}`.
 fn list_tex(name: ListName) -> String {
     format!("\\mathrm{{L}}_{{{}}}", name as usize + 1)
+}
+
+/// `[A]` as `\left[\mathrm{A}\right]`.
+fn matrix_tex(name: MatrixName) -> String {
+    let letter = name.text().trim_matches(['[', ']']);
+    format!("\\left[\\mathrm{{{letter}}}\\right]")
 }
 
 /// A system variable's name upright (`Xmin`), `Δ` as the Greek letter.
@@ -107,6 +130,7 @@ fn postfix_tex(op: PostfixOp, operand: &Expr) -> String {
         PostfixOp::Cube => format!("{{{base}}}^{{3}}"),
         PostfixOp::Inverse => format!("{{{base}}}^{{-1}}"),
         PostfixOp::Factorial => format!("{base}!"),
+        PostfixOp::Transpose => format!("{{{base}}}^{{\\mathsf{{T}}}}"),
     }
 }
 

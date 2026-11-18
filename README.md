@@ -31,13 +31,16 @@ Texas Instruments.
 - **STAT**: 1:Edit… shows L₁–L₆ as columns: type a value and ENTER to store it (the row after the last adds one), DEL
   removes an element. CALC 1-Var Stats [list] reports x̄, Σx, Σx², Sx, σx, n and the five-number summary;
   LinReg(ax+b) [xlist, ylist] fits a line with r² and r. Lists left out are L₁ and L₂.
+- **Matrices**: `[[1,2][3,4]]` (2nd × and 2nd − for the brackets), [A]–[J] from 2nd MATRIX (`→[A]` stores,
+  `[A](2,1)` reads an element); `+ − ×`, a number times a matrix, `²`, `³`, `^n`, `⁻¹` and `=`/`≠`; MATRIX MATH det(,
+  ᵀ, dim(, identity(, rref(. MATRIX EDIT fills a matrix cell by cell; entering past the last row or column grows it.
 - **Kept between visits**: memory, settings, functions, window, table and FORMAT settings, history and the skin, in the
   browser's local storage.
 - **Settings (ON)**: ON opens a settings screen for the skin, Color (the default) or Classic, and key haptics, On
   (the default) or Off; tap an option or use ▲ ▼ ◀ ▶, then ON, CLEAR or ENTER to return. Haptics vibrate on Android
   browsers and use Safari's switch-control feedback on iPhones (iOS 18+); desktop browsers have none.
 
-Not yet: matrices, complex numbers and programs.
+Not yet: complex numbers and programs.
 Keys for them are on the keypad and do nothing for now; syntax that needs them shows `ERR:UNSUPPORTED`.
 
 ### Computer keyboard

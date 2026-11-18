@@ -99,6 +99,9 @@ impl Calculator {
         match statement.store {
             Some(StoreTarget::Variable(letter)) => self.memory.set(letter, value.clone().real()?),
             Some(StoreTarget::List(name)) => self.memory.set_list(name, value.clone().list()?),
+            Some(StoreTarget::Matrix(name)) => {
+                self.memory.set_matrix(name, value.clone().matrix()?);
+            }
             None => {}
         }
         let result = format_value(&value, self.settings, statement.display);

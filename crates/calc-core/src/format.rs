@@ -8,7 +8,8 @@ use crate::{
 /// Significant digits a result shows at most.
 const DIGITS: i32 = 10;
 
-/// The tokens that type a formatted result (`⁻1.5ᴇ3`, `⁻3/4`, `{1 2}`).
+/// The tokens that type a formatted result (`⁻1.5ᴇ3`, `⁻3/4`, `{1 2}`,
+/// a matrix's rows); the padding that aligns a matrix's columns types nothing.
 pub fn result_tokens(text: &str) -> Vec<Token> {
     const DIGITS: [Digit; 10] = [
         Digit::Zero,
@@ -30,15 +31,22 @@ pub fn result_tokens(text: &str) -> Vec<Token> {
             '/' => Some(Token::Op(Operator::Divide)),
             '{' => Some(Token::LeftBrace),
             '}' => Some(Token::RightBrace),
+            '[' => Some(Token::LeftBracket),
+            ']' => Some(Token::RightBracket),
             ' ' => Some(Token::Comma),
             c => c.to_digit(10).map(|d| Token::Digit(DIGITS[d as usize])),
         })
         .collect()
 }
 
+/// Pads a matrix's elements to their column's width: as wide as a digit,
+/// and no comma when the result is typed back.
+const FIGURE_SPACE: char = '\u{2007}';
+
 /// A result as the home screen shows it: a number as `format_real` (or
 /// `format_fraction` after `►Frac`) writes it, a list as its elements
-/// between braces (`{1 2.5 ⁻3}`).
+/// between braces (`{1 2.5 ⁻3}`), a matrix one line per row with its
+/// columns aligned (`[[1 2]` over ` [3 4]]`).
 pub fn format_value(value: &Value, settings: Settings, display: Option<DisplayAs>) -> String {
     let number = |x: f64| match display {
         Some(DisplayAs::Fraction) => format_fraction(x, settings),
@@ -50,7 +58,31 @@ pub fn format_value(value: &Value, settings: Settings, display: Option<DisplayAs
             let elements: Vec<String> = list.iter().map(|&x| number(x)).collect();
             format!("{{{}}}", elements.join(" "))
         }
+        Value::Matrix(rows) => {
+            let cells: Vec<Vec<String>> = rows
+                .iter()
+                .map(|row| row.iter().map(|&x| number(x)).collect())
+                .collect();
+            format_matrix(&cells)
+        }
     }
+}
+
+fn format_matrix(cells: &[Vec<String>]) -> String {
+    let width = |column: usize| {
+        let widths = cells.iter().map(|row| row[column].chars().count());
+        widths.max().unwrap_or(0)
+    };
+    let widths: Vec<usize> = (0..cells[0].len()).map(width).collect();
+    let row_text = |row: &Vec<String>| {
+        let padded = row.iter().zip(&widths).map(|(cell, &width)| {
+            let padding = width - cell.chars().count();
+            format!("{}{cell}", FIGURE_SPACE.to_string().repeat(padding))
+        });
+        format!("[{}]", padded.collect::<Vec<_>>().join(" "))
+    };
+    let rows: Vec<String> = cells.iter().map(row_text).collect();
+    format!("[{}]", rows.join(&format!("\n{FIGURE_SPACE}")))
 }
 
 /// A result as the calculator shows it under `settings`: at most 10

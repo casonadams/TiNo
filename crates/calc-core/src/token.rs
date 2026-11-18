@@ -83,6 +83,42 @@ impl ListName {
     ];
 }
 
+/// A built-in matrix, `[A]` to `[J]`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum MatrixName {
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+}
+
+impl MatrixName {
+    pub const ALL: [MatrixName; 10] = [
+        MatrixName::A,
+        MatrixName::B,
+        MatrixName::C,
+        MatrixName::D,
+        MatrixName::E,
+        MatrixName::F,
+        MatrixName::G,
+        MatrixName::H,
+        MatrixName::I,
+        MatrixName::J,
+    ];
+
+    pub const fn text(self) -> &'static str {
+        [
+            "[A]", "[B]", "[C]", "[D]", "[E]", "[F]", "[G]", "[H]", "[I]", "[J]",
+        ][self as usize]
+    }
+}
+
 /// One unit of an entry: what one key press or menu pick inserts and one
 /// DEL removes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -110,6 +146,7 @@ pub enum Token {
     Store,
     Letter(Letter),
     List(ListName),
+    Matrix(MatrixName),
     SequenceU,
     SequenceV,
     SequenceW,
@@ -136,6 +173,7 @@ impl Token {
             }
             Token::Letter(letter) => letter.symbol(),
             Token::List(list) => ["L₁", "L₂", "L₃", "L₄", "L₅", "L₆"][list as usize],
+            Token::Matrix(name) => name.text(),
             Token::Op(op) => op.text(),
             Token::Postfix(op) => op.text(),
             Token::Func(function) => function.text(),

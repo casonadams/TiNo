@@ -1,5 +1,8 @@
 use crate::{
-    error::CalcError, list_editor::ListEditor, table::TableField, token::Token,
+    error::CalcError,
+    grid_editor::{Grid, GridEditor},
+    table::TableField,
+    token::Token,
     window_editor::WindowField,
 };
 
@@ -37,8 +40,8 @@ pub enum ErrorOrigin {
     Graph,
     /// A TBLSET field and the entry typed into it.
     TableField(TableField, Vec<Token>),
-    /// A cell of STAT EDIT, with what was typed into it.
-    ListEditor(ListEditor),
+    /// A cell of STAT EDIT or MATRIX EDIT, with what was typed into it.
+    Grid(Grid, GridEditor),
 }
 
 /// The error screen: the error, where it was raised, and the highlighted

@@ -63,7 +63,7 @@ pub struct HistoryLine {
     pub id: u32,
     /// The entry as TeX.
     pub latex: String,
-    /// The result as the calculator formats it.
+    /// The result as the calculator formats it; a matrix's rows on lines of their own.
     pub result: String,
     /// A command's report instead of a result: `x̄=2.5`, one line each.
     pub lines: Vec<String>,

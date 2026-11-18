@@ -66,6 +66,7 @@ impl Parser<'_> {
         match self.advance() {
             Some(Token::Letter(letter)) => Ok(Some(StoreTarget::Variable(letter))),
             Some(Token::List(name)) => Ok(Some(StoreTarget::List(name))),
+            Some(Token::Matrix(name)) => Ok(Some(StoreTarget::Matrix(name))),
             _ => Err(CalcError::at(ErrorKind::Syntax, target)),
         }
     }
@@ -163,6 +164,8 @@ impl Parser<'_> {
             Token::Func(function) => Ok(Expr::Call(function, self.arguments(function)?, at)),
             Token::YVar(slot) => self.y_var(slot),
             Token::List(name) => Ok(Expr::ListName(name, self.index()?)),
+            Token::Matrix(name) => Ok(Expr::MatrixName(name, self.element()?)),
+            Token::LeftBracket => self.matrix(),
             Token::LeftBrace => self.list(),
             Token::LeftParen => self.group(),
             _ => atom(token).ok_or_else(|| CalcError::at(unexpected(token), at)),
@@ -196,6 +199,52 @@ impl Parser<'_> {
             Some(_) => return Err(self.error(ErrorKind::Syntax)),
         }
         Ok(Expr::List(elements))
+    }
+
+    /// A row and column in parentheses right after a matrix name
+    /// (`[A](2,1)`), if any.
+    fn element(&mut self) -> Result<Option<Box<(Expr, Expr)>>, CalcError> {
+        if !self.eat(Token::LeftParen) {
+            return Ok(None);
+        }
+        let row = self.expression()?;
+        if !self.eat(Token::Comma) {
+            return Err(self.error(ErrorKind::Syntax));
+        }
+        let column = self.expression()?;
+        self.close()?;
+        Ok(Some(Box::new((row, column))))
+    }
+
+    /// A matrix's rows, its `[` consumed: each row's comma-separated
+    /// elements between brackets; the last `]` may be left out where a `)`
+    /// may.
+    fn matrix(&mut self) -> Result<Expr, CalcError> {
+        let mut rows = Vec::new();
+        while self.eat(Token::LeftBracket) {
+            rows.push(self.row()?);
+        }
+        if rows.is_empty() {
+            return Err(self.error(ErrorKind::Syntax));
+        }
+        match self.peek() {
+            Some(Token::RightBracket) => self.pos += 1,
+            None | Some(Token::Store | Token::Display(_)) => {}
+            Some(_) => return Err(self.error(ErrorKind::Syntax)),
+        }
+        Ok(Expr::Matrix(rows))
+    }
+
+    /// A matrix row's elements, its `[` consumed, through its `]`.
+    fn row(&mut self) -> Result<Vec<Expr>, CalcError> {
+        let mut elements = vec![self.expression()?];
+        while self.eat(Token::Comma) {
+            elements.push(self.expression()?);
+        }
+        if !self.eat(Token::RightBracket) {
+            return Err(self.error(ErrorKind::Syntax));
+        }
+        Ok(elements)
     }
 
     /// The inside of a parenthesis whose `(` was consumed.
@@ -303,7 +352,9 @@ fn starts_implied_factor(token: Token) -> bool {
                 | Token::Func(_)
                 | Token::YVar(_)
                 | Token::List(_)
+                | Token::Matrix(_)
                 | Token::LeftBrace
+                | Token::LeftBracket
                 | Token::LeftParen
         )
         || atom(token).is_some()
@@ -328,7 +379,6 @@ fn atom(token: Token) -> Option<Expr> {
 fn unexpected(token: Token) -> ErrorKind {
     match token {
         Token::ImaginaryI
-        | Token::LeftBracket
         | Token::SequenceU
         | Token::SequenceV
         | Token::SequenceW
@@ -438,6 +488,10 @@ pub(crate) mod tests {
             'w' => Token::Window(crate::window_editor::WindowField::XMin),
             't' => Token::Table(crate::table::TableField::Step),
             '[' => Token::LeftBracket,
+            ']' => Token::RightBracket,
+            'M' => Token::Matrix(crate::token::MatrixName::A),
+            'T' => Token::Postfix(PostfixOp::Transpose),
+            'I' => Token::ImaginaryI,
             _ => return None,
         })
     }
@@ -470,7 +524,32 @@ pub(crate) mod tests {
 
     #[test]
     fn syntax_not_evaluated_yet_is_reported_as_unsupported() {
-        assert_eq!(error_of("2+[").kind, ErrorKind::Unsupported);
+        assert_eq!(error_of("2+I").kind, ErrorKind::Unsupported);
+    }
+
+    #[test]
+    fn matrices_are_written_by_rows() {
+        let statement = parse(&tokens("[[1,2][3,4]]T→M")).unwrap();
+        let Expr::Postfix(PostfixOp::Transpose, matrix, _) = statement.expr else {
+            panic!("expected a transpose");
+        };
+        assert!(matches!(&*matrix, Expr::Matrix(rows) if rows.len() == 2));
+        let name = crate::token::MatrixName::A;
+        assert_eq!(statement.store, Some(StoreTarget::Matrix(name)));
+    }
+
+    #[test]
+    fn a_matrix_element_is_read_by_row_and_column() {
+        let Expr::ImpliedMultiply(_, element) = parse(&tokens("2M(2,1)")).unwrap().expr else {
+            panic!("expected a product");
+        };
+        assert!(matches!(*element, Expr::MatrixName(_, Some(_))));
+    }
+
+    #[test]
+    fn unclosed_rows_and_single_indices_are_syntax_errors() {
+        assert_eq!(error_of("[[1,2"), CalcError::at(ErrorKind::Syntax, 5));
+        assert_eq!(error_of("M(1)"), CalcError::at(ErrorKind::Syntax, 3));
     }
 
     #[test]

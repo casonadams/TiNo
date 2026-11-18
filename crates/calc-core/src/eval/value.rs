@@ -3,12 +3,14 @@ use serde::{Deserialize, Serialize};
 use super::fail;
 use crate::error::{CalcError, ErrorKind};
 
-/// What an expression evaluates to: a real number or a list of them.
+/// What an expression evaluates to: a real number, a list of them, or a
+/// matrix (its rows).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Value {
     Real(f64),
     List(Vec<f64>),
+    Matrix(Vec<Vec<f64>>),
 }
 
 impl Default for Value {
@@ -18,31 +20,40 @@ impl Default for Value {
 }
 
 impl Value {
-    /// The real number, or `ERR:DATA TYPE` for a list.
+    /// The real number, or `ERR:DATA TYPE` for a list or matrix.
     pub fn real(self) -> Result<f64, CalcError> {
         match self {
             Value::Real(x) => Ok(x),
-            Value::List(_) => fail(ErrorKind::DataType),
+            _ => fail(ErrorKind::DataType),
         }
     }
 
-    /// The list, or `ERR:DATA TYPE` for a real number.
+    /// The list, or `ERR:DATA TYPE` for a real number or matrix.
     pub fn list(self) -> Result<Vec<f64>, CalcError> {
         match self {
             Value::List(list) => Ok(list),
-            Value::Real(_) => fail(ErrorKind::DataType),
+            _ => fail(ErrorKind::DataType),
         }
     }
 
-    /// `f` of a real number, or of each element of a list.
+    /// The matrix, or `ERR:DATA TYPE` for a real number or list.
+    pub fn matrix(self) -> Result<Vec<Vec<f64>>, CalcError> {
+        match self {
+            Value::Matrix(rows) => Ok(rows),
+            _ => fail(ErrorKind::DataType),
+        }
+    }
+
+    /// `f` of a real number, or of each element of a list or matrix.
     pub fn map(self, f: impl Fn(f64) -> Result<f64, CalcError>) -> Result<Value, CalcError> {
         match self {
             Value::Real(x) => f(x).map(Value::Real),
-            Value::List(list) => list
+            Value::List(list) => map_all(list, &f).map(Value::List),
+            Value::Matrix(rows) => rows
                 .into_iter()
-                .map(f)
+                .map(|row| map_all(row, &f))
                 .collect::<Result<_, _>>()
-                .map(Value::List),
+                .map(Value::Matrix),
         }
     }
 
@@ -57,16 +68,26 @@ impl Value {
     }
 }
 
+fn map_all(
+    elements: Vec<f64>,
+    f: &impl Fn(f64) -> Result<f64, CalcError>,
+) -> Result<Vec<f64>, CalcError> {
+    elements.into_iter().map(f).collect()
+}
+
 /// `f` of the values' reals, or element by element when any is a list (a
 /// real number pairs with each element); `ERR:DIM MISMATCH` for lists of
-/// different lengths.
+/// different lengths, `ERR:DATA TYPE` for a matrix.
 pub fn broadcast(
     values: &[Value],
     f: impl Fn(&[f64]) -> Result<f64, CalcError>,
 ) -> Result<Value, CalcError> {
+    if values.iter().any(|value| matches!(value, Value::Matrix(_))) {
+        return fail(ErrorKind::DataType);
+    }
     let mut lengths = values.iter().filter_map(|value| match value {
         Value::List(list) => Some(list.len()),
-        Value::Real(_) => None,
+        _ => None,
     });
     let Some(length) = lengths.next() else {
         let reals: Vec<f64> = values
@@ -82,8 +103,8 @@ pub fn broadcast(
         values
             .iter()
             .map(|value| match value {
-                Value::Real(x) => *x,
                 Value::List(list) => list[index],
+                _ => value.clone().real().unwrap_or_default(),
             })
             .collect()
     };
@@ -122,7 +143,11 @@ mod tests {
 
     #[test]
     fn kept_values_read_back_from_plain_json() {
-        let values: Vec<Value> = serde_json::from_str("[2.5,[1,2]]").unwrap();
-        assert_eq!(values, [Value::Real(2.5), Value::List(vec![1.0, 2.0])]);
+        let values: Vec<Value> = serde_json::from_str("[2.5,[1,2],[[1],[2]]]").unwrap();
+        let column = Value::Matrix(vec![vec![1.0], vec![2.0]]);
+        assert_eq!(
+            values,
+            [Value::Real(2.5), Value::List(vec![1.0, 2.0]), column]
+        );
     }
 }

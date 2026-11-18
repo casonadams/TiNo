@@ -6,8 +6,8 @@
 mod calc;
 mod free;
 mod graph;
+mod grids;
 mod home;
-mod lists;
 mod persist;
 mod render;
 mod screens;
@@ -26,10 +26,10 @@ use crate::{
     functions::Functions,
     graph_calc::CalcItem,
     graph_format::{FormatCursor, GraphFormat},
+    grid_editor::{Grid, GridEditor},
     home::{EntryStack, History, HistorySelection},
     key::Key,
     keymap::{self, Action, Command, Edit},
-    list_editor::ListEditor,
     list_menu::ListMenu,
     menus::{MenuCursor, MenuKind},
     mode_screen::ModeCursor,
@@ -66,8 +66,8 @@ enum View {
     Zoom(ListMenu),
     TableSetup(FieldCursor<TableField>),
     Table(TableCursor),
-    /// STAT EDIT: the lists as columns.
-    Lists(ListEditor),
+    /// STAT EDIT's lists or MATRIX EDIT's matrix, a grid of cells.
+    Grid(Grid, GridEditor),
     /// A menu that types into the screen under it.
     Menu(OpenMenu),
 }
@@ -196,7 +196,7 @@ impl Calculator {
             View::Window(cursor) => self.perform_window(cursor, action),
             View::TableSetup(cursor) => self.perform_table_setup(cursor, action),
             View::Table(cursor) => self.perform_table(cursor, action),
-            View::Lists(editor) => self.perform_list_editor(editor, action),
+            View::Grid(grid, editor) => self.perform_grid((grid, editor), action),
             View::Graph(trace) => self.perform_graph(trace, action),
             View::FreeGraph(cursor) => self.perform_free(cursor, action),
             View::ZBox(marking) => self.perform_zbox(marking, action),
@@ -259,6 +259,7 @@ fn menu_of(command: Command) -> Option<MenuKind> {
         Command::Vars => Some(MenuKind::Vars),
         Command::List => Some(MenuKind::List),
         Command::Stat => Some(MenuKind::Stat),
+        Command::Matrix => Some(MenuKind::Matrix),
         _ => None,
     }
 }
@@ -267,7 +268,7 @@ fn menu_of(command: Command) -> Option<MenuKind> {
 /// being typed, else the home screen.
 fn menu_base(view: View) -> View {
     match view {
-        View::Home(_) | View::Window(_) | View::TableSetup(_) | View::Lists(_) => view,
+        View::Home(_) | View::Window(_) | View::TableSetup(_) | View::Grid(..) => view,
         View::Functions(cursor) if !cursor.on_selector => view,
         View::Menu(menu) => *menu.under,
         _ => HOME,

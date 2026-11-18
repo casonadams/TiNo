@@ -1,11 +1,13 @@
-//! Evaluating expressions over real numbers and lists of them.
+//! Evaluating expressions over real numbers, lists and matrices.
 
 mod arithmetic;
 mod calculus;
 mod calls;
 mod lists;
+mod matrix;
 mod value;
 
+pub use matrix::{LARGEST_DIMENSION, Matrix, dimension};
 pub use value::Value;
 
 use std::{
@@ -20,7 +22,8 @@ use crate::{
     expr::{Constant, Expr},
     settings::Angle,
     table::TableSettings,
-    token::{Letter, ListName},
+    token::{Letter, ListName, MatrixName},
+    vocabulary::{Operator, PostfixOp},
     window::Window,
 };
 
@@ -30,13 +33,15 @@ const OVERFLOW: f64 = 1e100;
 const UNDERFLOW: f64 = 1e-99;
 
 /// The values expressions read: variables `A`-`Z` and `θ`, all 0 at first;
-/// the lists `L₁`-`L₆`, empty at first; `Ans`; and the state `rand` draws
-/// from.
+/// the lists `L₁`-`L₆`, empty at first; the matrices `[A]`-`[J]`, undefined
+/// (empty) at first; `Ans`; and the state `rand` draws from.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Memory {
     variables: [f64; 27],
     #[serde(default)]
     lists: [Vec<f64>; 6],
+    #[serde(default)]
+    matrices: [Matrix; 10],
     ans: Value,
     #[serde(default)]
     random: Cell<u64>,
@@ -47,6 +52,7 @@ impl Default for Memory {
         Memory {
             variables: [0.0; 27],
             lists: Default::default(),
+            matrices: Default::default(),
             ans: Value::Real(0.0),
             random: Cell::new(0),
         }
@@ -68,6 +74,15 @@ impl Memory {
 
     pub fn set_list(&mut self, name: ListName, list: Vec<f64>) {
         self.lists[name as usize] = list;
+    }
+
+    /// A matrix by name; empty while undefined.
+    pub fn matrix(&self, name: MatrixName) -> &Matrix {
+        &self.matrices[name as usize]
+    }
+
+    pub fn set_matrix(&mut self, name: MatrixName, matrix: Matrix) {
+        self.matrices[name as usize] = matrix;
     }
 
     pub fn ans(&self) -> &Value {
@@ -171,20 +186,17 @@ impl<'a> Evaluator<'a> {
                 .collect::<Result<_, _>>()
                 .map(Value::List),
             Expr::ListName(name, index) => self.list_name(*name, index.as_deref()),
+            Expr::Matrix(rows) => self.matrix(rows),
+            Expr::MatrixName(name, index) => self.matrix_name(*name, index.as_deref()),
             Expr::YVar(slot, argument) => self.y_var(*slot, argument.as_deref()),
             Expr::Negate(operand) => self.value(operand)?.map(|x| Ok(-x)),
             Expr::ImpliedMultiply(left, right) => {
-                self.value(left)?.zip(self.value(right)?, |a, b| Ok(a * b))
+                operate(Operator::Multiply, (self.value(left)?, self.value(right)?))
             }
-            Expr::Binary(op, left, right, at) => located(
-                self.value(left)?
-                    .zip(self.value(right)?, |a, b| arithmetic::binary(*op, a, b)),
-                *at,
-            ),
-            Expr::Postfix(op, operand, at) => located(
-                self.value(operand)?.map(|x| arithmetic::postfix(*op, x)),
-                *at,
-            ),
+            Expr::Binary(op, left, right, at) => {
+                located(operate(*op, (self.value(left)?, self.value(right)?)), *at)
+            }
+            Expr::Postfix(op, operand, at) => located(postfix(*op, self.value(operand)?), *at),
             Expr::Call(function, arguments, at) => located(self.call(*function, arguments), *at),
         };
         value?.map(in_range)
@@ -206,6 +218,40 @@ impl<'a> Evaluator<'a> {
         let position = whole(self.real(index)?, 1.0..=list.len() as f64)
             .map_err(|_| CalcError::new(ErrorKind::InvalidDim))?;
         Ok(Value::Real(list[position as usize - 1]))
+    }
+
+    /// A matrix written out: rows of real numbers, all the same length.
+    fn matrix(&self, rows: &[Vec<Expr>]) -> Result<Value, CalcError> {
+        let rows: Matrix = rows
+            .iter()
+            .map(|row| row.iter().map(|element| self.real(element)).collect())
+            .collect::<Result<_, _>>()?;
+        if rows.iter().any(|row| row.len() != rows[0].len()) {
+            return fail(ErrorKind::InvalidDim);
+        }
+        Ok(Value::Matrix(rows))
+    }
+
+    /// A matrix by name, or its element at a row and column (`[A](2,1)`).
+    fn matrix_name(
+        &self,
+        name: MatrixName,
+        index: Option<&(Expr, Expr)>,
+    ) -> Result<Value, CalcError> {
+        let matrix = self.context.memory.matrix(name);
+        if matrix.is_empty() {
+            return fail(ErrorKind::Undefined);
+        }
+        let Some((row, column)) = index else {
+            return Ok(Value::Matrix(matrix.clone()));
+        };
+        let place = |expr: &Expr, count: usize| {
+            whole(self.real(expr)?, 1.0..=count as f64)
+                .map(|n| n as usize - 1)
+                .map_err(|_| CalcError::new(ErrorKind::InvalidDim))
+        };
+        let row = place(row, matrix.len())?;
+        Ok(Value::Real(matrix[row][place(column, matrix[0].len())?]))
     }
 
     /// Y= function `slot` at the current `X`, or at `argument` (each of its
@@ -232,6 +278,22 @@ impl<'a> Evaluator<'a> {
                 .map(|x| inner.with(Letter::X, x).real(function)),
         };
         result.map_err(|error| CalcError::new(error.kind))
+    }
+}
+
+/// An infix operator: element by element over reals and lists, as matrix
+/// arithmetic when either side is a matrix.
+fn operate(op: Operator, (left, right): (Value, Value)) -> Result<Value, CalcError> {
+    if matches!(left, Value::Matrix(_)) || matches!(right, Value::Matrix(_)) {
+        return matrix::binary(op, left, right);
+    }
+    left.zip(right, |a, b| arithmetic::binary(op, a, b))
+}
+
+fn postfix(op: PostfixOp, operand: Value) -> Result<Value, CalcError> {
+    match operand {
+        Value::Matrix(m) => matrix::postfix(op, &m).map(Value::Matrix),
+        value => value.map(|x| arithmetic::postfix(op, x)),
     }
 }
 

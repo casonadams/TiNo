@@ -1,6 +1,6 @@
 use crate::{
     table::TableField,
-    token::{Letter, ListName},
+    token::{Letter, ListName, MatrixName},
     vocabulary::{DisplayAs, Function, Operator, PostfixOp},
     window_editor::WindowField,
 };
@@ -24,6 +24,11 @@ pub enum Expr {
     List(Vec<Expr>),
     /// A stored list by name, or its element at the index (`L₁(2)`).
     ListName(ListName, Option<Box<Expr>>),
+    /// A matrix written out by rows: `[[1,2][3,4]]`.
+    Matrix(Vec<Vec<Expr>>),
+    /// A stored matrix by name, or its element at a row and column
+    /// (`[A](2,1)`, counting from 1).
+    MatrixName(MatrixName, Option<Box<(Expr, Expr)>>),
     Negate(Box<Expr>),
     Postfix(PostfixOp, Box<Expr>, usize),
     Binary(Operator, Box<Expr>, Box<Expr>, usize),
@@ -55,11 +60,13 @@ pub struct Statement {
     pub store: Option<StoreTarget>,
 }
 
-/// Where `→` stores: a variable takes a number, a list name a list.
+/// Where `→` stores: a variable takes a number, a list name a list, a
+/// matrix name a matrix.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StoreTarget {
     Variable(Letter),
     List(ListName),
+    Matrix(MatrixName),
 }
 
 /// Binding strength, loosest first, in the calculator's order: `or` and
